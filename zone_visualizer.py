@@ -185,7 +185,7 @@ def main():
         rect = zone_rect(warped, z["zone"])
         draw_zone_rect(vis, rect, (180,255,0), 2, "VERSION")
         symbols = z.get("symbols", z.get("digits","ABCD"))
-        if z.get("orientation") == "row":
+        if z.get("orientation") == "horizontal":
             rows = 1; cols = len(symbols)
         else:
             rows = len(symbols); cols = z.get("positions",1)

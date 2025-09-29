@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""
+r"""
 bubble_scan.py
 
 Merged Scantron/REMARK bubble sheet reader:

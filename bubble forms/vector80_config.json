@@ -1,0 +1,51 @@
+{
+  "last_name_layout": {
+    "zone": [0.3678, 0.0739, 0.7785, 0.5355],
+    "positions": 14,
+    "alphabet": " ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  },
+  "first_name_layout": {
+    "zone": [0.802, 0.0739, 0.949, 0.5355],
+    "positions": 5,
+    "alphabet": " ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  },
+  "id_layout": {
+    "zone": [0.0510, 0.0739, 0.3449, 0.2451],
+    "positions": 10,
+    "digits": "0123456789"
+  },
+  "version_layout": {
+    "zone": [0.213, 0.31, 0.3199, 0.33],
+    "alphabet": "ABCD",
+    "positions": 1,
+    "orientation": "horizontal"
+  },
+  "answer_layouts": [
+    {
+      "zone": [0.0882, 0.5522, 0.2606, 0.9665],
+      "questions": 20,
+      "questions_per_row": 1,
+      "choices": 5
+    },
+    {
+      "zone": [0.3119, 0.5522, 0.4842, 0.9665],
+      "questions": 20,
+      "questions_per_row": 1,
+      "choices": 5
+    },
+    {
+      "zone": [0.5358, 0.5522, 0.7081, 0.9665],
+      "questions": 20,
+      "questions_per_row": 1,
+      "choices": 5
+    },
+    {
+      "zone": [0.7595, 0.5522, 0.9313, 0.9665],
+      "questions": 20,
+      "questions_per_row": 1,
+      "choices": 5
+    }
+  ],
+  "bubble_shape": "circle",
+  "total_questions": 80
+}

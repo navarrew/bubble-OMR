@@ -16,3 +16,10 @@ These are instructions for a set of bubble-sheet scoring scripts for multiple ch
 
 <i>Future versions will add analysis functionality including mean, mode, and per-question analysis.</i>
 
+### Example commands:
+
+python zone_visualizer.py --config MGYform_config.json --input vector_template.pdf --page 1 --bubble-shape circle --out zones_overlay.jpg
+
+python scan_aligner.py --method auto --dpi 300 --fallback-original --save-debug debug_auto --template template.pdf --input-pdf test.pdf --out testalign.pdf
+
+python bubble_score.py --config config.json --key-txt key.txt --total-questions 16 --out-csv results.csv --out-annotated-dir annotated_pages --annotate-all-cells --name-min-fill 0.70  --label-density testalign.pdf

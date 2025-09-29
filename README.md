@@ -2,7 +2,7 @@
 versitile and fast bubble sheet OMR scanner and scoring software in python
 
 # Bubblesheet Scanner Instructions
-These are instructions for 
+These are instructions for a set of bubble-sheet scoring scripts for multiple choice exams.
 
 ## General Overview: Make your bubble sheet:
 1.	Make your bubble sheet as a pdf file.  It’s best if you add landmarks called ARUCO markers to it so the scans, which can be wonky and slightly misaligned/rotated, can be easily aligned with software prior to analysis.

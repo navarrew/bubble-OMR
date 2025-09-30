@@ -19,7 +19,7 @@ These are instructions for a set of bubble-sheet scoring scripts for multiple ch
 2.	Make a ‘config.json’ file that tells the marking software where the question bubbles are, where the student ID bubbles are, etc.  Use the ‘zone_visualizer.py’ to see how well the zones described in the json file fit to your scanned bubble sheet so you can adjust the config.json file to get everything lined up properly.
 3.	Make a key as a text file.  The answers (as letters like A,B,A,D,C,C,D...) can be comma-separated or separated with newlines.
 
-## Step 2- Scan and align your bubble sheets:
+## Step 2- Scan and align your bubble sheets
 1.	Scan your student bubble sheets with a high quality scanner (garbage in, garbage out).  
 2.  It's easiest if the scans are provided as a single multi-page pdf at 300dpi.
 2.	Align the student pdfs to a blank version of the bubble sheet (the clean, original pdf file is best) using the scan_align.py script.  It will give you a new set of pdfs that are all aligned so the software can accurately find the bubbles.
@@ -33,14 +33,20 @@ These are instructions for a set of bubble-sheet scoring scripts for multiple ch
 
 ### Example commands:
 
-```python zone_visualizer.py --config testform_config.json --input blank_template.pdf --page 1 --bubble-shape circle --out zones_overlay.jpg```
+```
+python zone_visualizer.py --config testform_config.json --input blank_template.pdf --page 1 --bubble-shape circle --out zones_overlay.jpg
+```
 
-```python scan_aligner.py --method auto --dpi 300 --fallback-original --save-debug debug_auto --template template.pdf --input-pdf test.pdf --out testalign.pdf```
+```
+python scan_aligner.py --method auto --dpi 300 --fallback-original --save-debug debug_auto --template template.pdf --input-pdf test.pdf --out testalign.pdf
+```
 
-```python bubble_score.py --config config.json --key-txt key.txt --total-questions 16 --out-csv results.csv --out-annotated-dir annotated_pages --annotate-all-cells --name-min-fill 0.70  --label-density testalign.pdf```
+```
+python bubble_score.py --config config.json --key-txt key.txt --total-questions 16 --out-csv results.csv --out-annotated-dir annotated_pages --annotate-all-cells --name-min-fill 0.70  --label-density testalign.pdf
+```
 
 ---
-## Making your bubble sheet.
+## Making your bubble sheet
 If you're in a hurry, we provide a few different templates (and their corresponding config files) that should be ready to use right away with no issues.  You can also freely modify these files for your own use.  If you want to make your own bubble sheet from scratch that's fine too.
 
 Suggestions:
@@ -49,7 +55,7 @@ Suggestions:
 2. You may want to decrease the darkness of the bubbles themselves (gray instead of black circles and letters) so the student marks stand out more against the background of the bubbles. (I made my bubbles with hollow black circles and dialed their transparency down to 50% before saving as a pdf.)
 
 
-## Using the zone_visualizer.py script to make the config file for your bubble sheet template.
+## Using the zone_visualizer.py script to make the config file for your bubble sheet template
 
 The config file is like a map that tells bubble_score.py where the bubbles are located on the bubble sheet and what type of bubble the are (student name, student ID, test version, or the answer to a question).  This is a very important starting step because if the config file doesn't line up with the bubble sheet then you will get poor results.  
 
@@ -58,10 +64,10 @@ Config files are written in 'JSON' format.
 ```python zone_visualizer.py --config config.json --input blank_sheet.pdf --page 1 --bubble-shape circle --out zone_overlay.jpg```
 
 
-## Making your test key.
+## Making your test key
 Test keys are text files where the answers (A, B, C, D, E...) are separated by spaces, commas, or newlines.
 
-## Aligning your scanned documents with scan_aligner.py.
+## Aligning your scanned documents with scan_aligner.py
 
 After scanning it is typical that the page images will be randomly a bit off-center or askew.  A small bit of rotation in a page is usually tolerated by the scoring software but much better results will be obtained the pages are pre-processed to align almost perfectly with the original template...which matches the config map file.
 
@@ -69,6 +75,9 @@ After scanning it is typical that the page images will be randomly a bit off-cen
 python scan_aligner.py --method auto --dpi 300 --fallback-original --save-debug debug_auto --template template.pdf --input-pdf test.pdf --out aligned_scans.pdf
 ```
 #### Mandatory flags:
+--input-pdf
+--out
+--template
 
 #### Optional flags:
 ```
@@ -79,3 +88,5 @@ python scan_aligner.py --method auto --dpi 300 --fallback-original --save-debug 
 --metrics-csv out.csv (a csv file of per-page stats, good for troubleshooting)
 --first-page N / --last-page M (sekect a subset of pages to align 0-based inclusive)
 ```
+
+## Scoring the tests with bubble_score.py

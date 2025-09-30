@@ -1,10 +1,10 @@
 # bubble-OMR
 This is a set of scripts, written in Python, for a versitile and fast bubble sheet OMR scanner and scoring software.
 
-[image]: src="https://github.com/navarrew/bubble-OMR/tree/main/images/top.png
+<img src="https://github.com/navarrew/bubble-OMR/tree/main/images/top.png" />
 
 ## Dependencies
-To use this software you will need Python 3.10 or higher.  This package relies on 
+To use this software you will need Python 3.10 or higher.  This package relies on x
 
 --
 

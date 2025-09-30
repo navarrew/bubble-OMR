@@ -2,15 +2,15 @@
 This is a set of scripts, written in Python, for a versitile and fast bubble sheet OMR scanner and scoring software.
 
 ## Dependencies
----
 To use this software you will need
 
+--
 
-# Bubblesheet Scanner Instructions
+# Bubble-OMR Instructions
 These are instructions for a set of bubble-sheet scoring scripts for multiple choice exams.
 
 ## Step 1- Make your bubble sheet
-1.	Make your bubble sheet as a pdf file.  I use Affinity Designer, but any software could work as long as it exports your bubble sheet as a pdf. 
+1.	Make your bubble sheet as a pdf file.  I provide templates in the 'bubble forms' folder.  I used Affinity Designer, but any software could work as long as it exports your bubble sheet as a pdf. 
 2.  It’s a good idea to add landmarks called ARUCO markers to it so the scans, which can be wonky and slightly misaligned/rotated, can be easily aligned with software prior to analysis.
 2.	Make a ‘config.json’ file that tells the marking software where the question bubbles are, where the student ID bubbles are, etc.  Use the ‘zone_visualizer.py’ to see how well the zones described in the json file fit to your scanned bubble sheet so you can adjust the config.json file to get everything lined up properly.
 3.	Make a key as a text file.  The answers (as letters like A,B,A,D,C,C,D...) can be comma-separated or separated with newlines.

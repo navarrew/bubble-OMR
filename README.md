@@ -4,7 +4,9 @@ This is a set of scripts, written in Python, for a versitile and fast bubble she
 ![lead_image](/images/top.png)
 
 ## Dependencies
-To use this software you will need Python 3.10 or higher.  This package relies on x
+To use this software you will need Python 3.10 or higher.  These scripts rely on several additional packages.
+
+pip install opencv-contrib-python numpy Pillow PyMuPDF
 
 --
 
@@ -37,6 +39,40 @@ These are instructions for a set of bubble-sheet scoring scripts for multiple ch
 
 > python bubble_score.py --config config.json --key-txt key.txt --total-questions 16 --out-csv results.csv --out-annotated-dir annotated_pages --annotate-all-cells --name-min-fill 0.70  --label-density testalign.pdf
 
+---
+## Making your bubble sheet.
+If you're in a hurry, we provide a few different templates (and their corresponding config files) that should be ready to use right away with no issues.  You can also freely modify these files for your own use.  If you want to make your own bubble sheet from scratch that's fine too.
 
-## Using the zone_visualizer to make your
---
+Suggestions:
+1. You should align the bubbles with even spacing between each.  You'll run into problems if the gaps between bubbles are not consistent.   Use the 'align' and 'distribute' features on your graphics software to ensure your bubbles are aligned properly.
+
+2. You may want to decrease the darkness of the bubbles themselves (gray instead of black circles and letters) so the student marks stand out more against the background of the bubbles. (I made my bubbles with hollow black circles and dialed their transparency down to 50% before saving as a pdf.)
+
+
+## Using the zone_visualizer.py script to make the config file for your bubble sheet template.
+
+The config file is like a map that tells bubble_score.py where the bubbles are located on the bubble sheet and what type of bubble the are (student name, student ID, test version, or the answer to a question).  This is a very important starting step because if the config file doesn't line up with the bubble sheet then you will get poor results.  
+
+Config files are written in 'JSON' format.
+
+> python zone_visualizer.py --config config.json --input blank_sheet.pdf --page 1 --bubble-shape circle --out zone_overlay.jpg
+
+
+## Making your test key.
+Test keys are text files where the answers (A, B, C, D, E...) are separated by spaces, commas, or newlines.
+
+## Aligning your scanned documents with scan_aligner.py.
+
+> python scan_aligner.py --method auto --dpi 300 --fallback-original --save-debug debug_auto --template template.pdf --input-pdf test.pdf --out testalign.pdf
+
+scan_aligner.py chooses one of two methods to align your student scans.
+
+OPTIONAL FLAGS:
+```
+--method {aruco,feature,auto} (default auto)
+--dpi 300 (rasterization)
+--fallback-original (keeps page scaled to template size if alignment fails)
+--save-debug DIR (write per-page PNGs with overlay)
+--first-page N / --last-page M (0-based inclusive)
+--metrics-csv out.csv (per-page stats)
+```

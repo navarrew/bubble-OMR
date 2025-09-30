@@ -63,16 +63,19 @@ Test keys are text files where the answers (A, B, C, D, E...) are separated by s
 
 ## Aligning your scanned documents with scan_aligner.py.
 
-> python scan_aligner.py --method auto --dpi 300 --fallback-original --save-debug debug_auto --template template.pdf --input-pdf test.pdf --out testalign.pdf
+After scanning it is typical that the page images will be randomly a bit off-center or askew.  A small bit of rotation in a page is usually tolerated by the scoring software but much better results will be obtained the pages are pre-processed to align almost perfectly with the original template...which matches the config map file.
 
-scan_aligner.py chooses one of two methods to align your student scans.
+```
+python scan_aligner.py --method auto --dpi 300 --fallback-original --save-debug debug_auto --template template.pdf --input-pdf test.pdf --out aligned_scans.pdf
+```
+#### Mandatory flags:
 
-OPTIONAL FLAGS:
+#### Optional flags:
 ```
 --method {aruco,feature,auto} (default auto)
 --dpi 300 (rasterization)
 --fallback-original (keeps page scaled to template size if alignment fails)
 --save-debug DIR (write per-page PNGs with overlay)
---first-page N / --last-page M (0-based inclusive)
---metrics-csv out.csv (per-page stats)
+--metrics-csv out.csv (a csv file of per-page stats, good for troubleshooting)
+--first-page N / --last-page M (sekect a subset of pages to align 0-based inclusive)
 ```

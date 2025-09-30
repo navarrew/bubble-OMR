@@ -1,5 +1,10 @@
 # bubble-OMR
-versitile and fast bubble sheet OMR scanner and scoring software in python
+This is a set of scripts, written in Python, for a versitile and fast bubble sheet OMR scanner and scoring software.
+
+## Dependencies
+---
+To use this software you will need
+
 
 # Bubblesheet Scanner Instructions
 These are instructions for a set of bubble-sheet scoring scripts for multiple choice exams.
@@ -20,7 +25,7 @@ These are instructions for a set of bubble-sheet scoring scripts for multiple ch
 2.  You will get an output comma-separated file with each student in a row, their answers, and their final score
 3.  You can optionally export a pdf of the bubble sheets with circles that visually indicate which bubbles were scored.  This is useful for diagnosing issues.
 
-<i>Future versions will add analysis functionality including mean, mode, and per-question analysis.</i>
+<i>Future versions will add analysis functionality including mean, mode, and per-question analysis to determine if a question is well-written.</i>
 
 ### Example commands:
 
@@ -30,8 +35,6 @@ These are instructions for a set of bubble-sheet scoring scripts for multiple ch
 
 > python bubble_score.py --config config.json --key-txt key.txt --total-questions 16 --out-csv results.csv --out-annotated-dir annotated_pages --annotate-all-cells --name-min-fill 0.70  --label-density testalign.pdf
 
-## Dependencies
----
-use 
 
 ## Using the zone_visualizer to make your
+--

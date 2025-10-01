@@ -67,17 +67,21 @@ Config files are written in 'JSON' format.
 ## Making your test key
 Test keys are text files where the answers (A, B, C, D, E...) are separated by spaces, commas, or newlines.
 
+---
 ## Aligning your scanned documents with scan_aligner.py
 
-After scanning it is typical that the page images will be randomly a bit off-center or askew.  A small bit of rotation in a page is usually tolerated by the scoring software but much better results will be obtained the pages are pre-processed to align almost perfectly with the original template...which matches the config map file.
+After scanning it is typical that the page images will be randomly a bit off-center or askew.  A small bit of rotation in a page is usually tolerated by the scoring software but much better results will be obtained the pages are pre-processed to align almost perfectly with the original template that matches the config map file.
 
+A philosophy of 'garbage in, garbage out' should apply here.  The higher quality scans you provide, the less likely you'll have issues later.  300 dpi inputs are great.  A high quality scanner that isn't prone to warping or scrunching is also great.
+
+Example command:
 ```
 python scan_aligner.py --method auto --dpi 300 --fallback-original --save-debug debug_auto --template template.pdf --input-pdf test.pdf --out aligned_scans.pdf
 ```
 #### Mandatory flags:
---input-pdf
---out
---template
+--input-pdf {filename (and path) of input pdf file(s)}
+--out {output filename including path if necessary}
+--template {filename of the template everything will be aligned to}
 
 #### Optional flags:
 ```
@@ -89,4 +93,5 @@ python scan_aligner.py --method auto --dpi 300 --fallback-original --save-debug 
 --first-page N / --last-page M (sekect a subset of pages to align 0-based inclusive)
 ```
 
+---
 ## Scoring the tests with bubble_score.py

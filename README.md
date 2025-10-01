@@ -46,6 +46,8 @@ python bubble_score.py --config config.json --key-txt key.txt --total-questions 
 ```
 
 ---
+# More detailed descriptions of each script are below
+---
 ## Making your bubble sheet
 If you're in a hurry, we provide a few different templates (and their corresponding config files) that should be ready to use right away with no issues.  You can also freely modify these files for your own use.  If you want to make your own bubble sheet from scratch that's fine too.
 
@@ -54,7 +56,7 @@ Suggestions:
 
 2. You may want to decrease the darkness of the bubbles themselves (gray instead of black circles and letters) so the student marks stand out more against the background of the bubbles. (I made my bubbles with hollow black circles and dialed their transparency down to 50% before saving as a pdf.)
 
-
+---
 ## Using the zone_visualizer.py script to make the config file for your bubble sheet template
 
 The config file is like a map that tells bubble_score.py where the bubbles are located on the bubble sheet and what type of bubble the are (student name, student ID, test version, or the answer to a question).  This is a very important starting step because if the config file doesn't line up with the bubble sheet then you will get poor results.  
@@ -64,6 +66,7 @@ Config files are written in 'JSON' format.
 ```python zone_visualizer.py --config config.json --input blank_sheet.pdf --page 1 --bubble-shape circle --out zone_overlay.jpg```
 
 
+---
 ## Making your test key
 Test keys are text files where the answers (A, B, C, D, E...) are separated by spaces, commas, or newlines.
 

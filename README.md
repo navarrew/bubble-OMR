@@ -98,3 +98,59 @@ python scan_aligner.py --method auto --dpi 300 --fallback-original --save-debug 
 
 ---
 ## Scoring the tests with bubble_score.py
+
+
+---
+## Analyzing the results with bubble_stats.py
+
+The script *bubble_stats.py* processes the results from *bubble_score.py*. It supports a KEY row (with correct answers) and student responses, converts them into a correctness matrix (0/1), and computes per-item and exam-level statistics.
+### Usage
+Basic command:
+python bubble_stats.py -i results.csv -o results_with_item_stats.csv
+Optional Flags
+•	-i, --input: Path to input CSV (required).
+•	-o, --output: Path to output CSV. Default: input name + '_with_item_stats.csv'.
+•	--item-pattern: Regex to detect item columns. Default: Q\d+.
+•	--percent: Output difficulty as percent (0–100) instead of proportion (0–1).
+•	--label-col: Which column to use for placing summary row labels. Default: first non-item column.
+•	--exam-stats-csv: Path to write exam-level stats (KR-20, KR-21, mean, SD, etc).
+•	--plots-dir: Directory to save item characteristic plots (PNG).
+•	--key-row-index: Row index (0-based) of KEY row. Default: auto-detect (looks for 'KEY').
+•	--answers-mode: Force interpretation of responses: 'letters', 'binary', or 'auto' (default).
+•	--item-report-csv: Path to write per-item distractor analysis table.
+•	--key-label: Label string to identify KEY row in non-item column. Default: 'KEY'.
+Outputs
+1. Main CSV (results_with_item_stats.csv):
+- Original data (including KEY row).
+- Appends two rows at the bottom:
+  * 'Pct correct (0-1)' or '(0-100)': item difficulty.
+  * 'Point–biserial': discrimination index of each item.
+2. Exam-level stats (exam_stats.csv):
+Contains summary statistics:
+- k_items: Number of questions.
+- mean_total, sd_total, var_total: Distribution of student scores.
+- avg_difficulty: Mean proportion correct across items.
+- KR-20: Reliability estimate for dichotomous items.
+- KR-21: Approximate reliability using mean difficulty.
+3. Item report (item_analysis.csv):
+One row per item-option combination:
+- item, key, option, is_key.
+- option_count, option_prop: How often each option was selected.
+- option_biserial: Correlation between choosing this option and total score (excl. item).
+- item_difficulty, item_point_biserial.
+4. Item plots (item_plots/):
+One PNG per item, showing a nonparametric Item Characteristic Curve (ICC):
+- X-axis: binned total-minus-item score.
+- Y-axis: proportion correct in each bin.
+Interpretation of Statistics
+•	Difficulty (Pct correct):
+Proportion of students who answered correctly. Ideal values often 0.3–0.8.
+•	Point–biserial:
+Correlation between correctness and total score (excluding the item). Higher positive values indicate better discrimination. Negative values are problematic.
+•	KR-20:
+Reliability coefficient for dichotomous items. Higher values (≥0.7) indicate consistent test performance.
+•	KR-21:
+Approximation of KR-20 assuming items have similar difficulty. Useful when item-level data is limited.
+•	Option biserial:
+Correlation between selecting a particular option and student ability. Correct option should be positive; distractors should be negative or near-zero.
+

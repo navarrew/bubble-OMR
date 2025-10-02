@@ -29,7 +29,9 @@ This is a quick summary of how the pipeline works.
 2.  You will get an output comma-separated file with each student in a row, their answers, and their final score
 3.  You can optionally export a pdf of the bubble sheets with circles that visually indicate which bubbles were scored.  This is useful for diagnosing issues.
 
-<i>Future versions will add analysis functionality including mean, mode, and per-question analysis to determine if a question is well-written.</i>
+## Step 4 - Analyze the results and assess how good your questions are
+1.	Run the **bubble_stats.py** script on the csv file that was the output of the bubble_score.py script.
+
 
 ### Example commands:
 

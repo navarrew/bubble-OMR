@@ -104,6 +104,7 @@ python scan_aligner.py --method auto --dpi 300 --fallback-original --save-debug 
 ## Analyzing the results with bubble_stats.py
 
 The script *bubble_stats.py* processes the results from *bubble_score.py*. It supports a KEY row (with correct answers) and student responses, converts them into a correctness matrix (0/1), and computes per-item and exam-level statistics.
+
 ### Usage
 Basic command:
 python bubble_stats.py -i results.csv -o results_with_item_stats.csv

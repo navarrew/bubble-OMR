@@ -1,0 +1,68 @@
+last_name_layout:
+  zone:
+  - 0.3591
+  - 0.1062
+  - 0.7693
+  - 0.569
+  positions: 14
+  alphabet: ' ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+first_name_layout:
+  zone:
+  - 0.7953
+  - 0.1062
+  - 0.9428
+  - 0.569
+  positions: 5
+  alphabet: ' ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+id_layout:
+  zone:
+  - 0.037
+  - 0.3978
+  - 0.3255
+  - 0.569
+  positions: 10
+  digits: 0123456789
+version_layout:
+  zone:
+  - 0.203
+  - 0.308
+  - 0.3092
+  - 0.3286
+  alphabet: ABCD
+  positions: 1
+  orientation: horizontal
+answer_layouts:
+- zone:
+  - 0.0626
+  - 0.5931
+  - 0.2458
+  - 0.9227
+  questions: 16
+  questions_per_row: 1
+  choices: 5
+- zone:
+  - 0.2976
+  - 0.5931
+  - 0.4816
+  - 0.9227
+  questions: 16
+  questions_per_row: 1
+  choices: 5
+- zone:
+  - 0.5338
+  - 0.5931
+  - 0.7178
+  - 0.9227
+  questions: 16
+  questions_per_row: 1
+  choices: 5
+- zone:
+  - 0.7684
+  - 0.5931
+  - 0.9524
+  - 0.9238
+  questions: 16
+  questions_per_row: 1
+  choices: 5
+bubble_shape: circle
+total_questions: 64

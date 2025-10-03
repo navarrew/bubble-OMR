@@ -1,0 +1,33 @@
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bubble-omr"
+version = "0.6.0"
+description = "Versatile and fast bubble sheet OMR scanner and scoring software in Python"
+readme = "README.md"
+license = {text = "GPL-3.0-only"}
+authors = [{name = "William"}]
+requires-python = ">=3.10"
+dependencies = [
+  "typer>=0.12",
+  "rich>=13.7",
+  "opencv-contrib-python>=4.9",
+  "numpy>=1.26,<2.0",
+  "pillow>=10.0",
+  "pymupdf>=1.24",
+  "pdf2image>=1.17",
+  "pandas>=2.1,<2.3",
+  "matplotlib>=3.8",
+  "streamlit>=1.35",
+  "pyyaml",
+]
+
+[project.scripts]
+bubble-omr = "bubble_omr.cli:app_main"
+bubble-omr-gui = "bubble_omr.gui_launcher:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bubble_omr"]

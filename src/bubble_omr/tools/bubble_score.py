@@ -323,20 +323,20 @@ def process_page_all(
     info = {"last_name": "", "first_name": "", "student_id": "", "version": ""}
 
     if cfg.last_name_layout:
-        picked, _, _ = decode_layout(gray, cfg.last_name_layout, min_fill, top2_ratio)
+        picked, _, _ = decode_layout(gray, cfg.last_name_layout, min_fill, top2_ratio, min_score, min_abs)
         # per-column picks (len = choices); map rows->letters
         info["last_name"] = indices_to_text_col(picked, cfg.last_name_layout.labels or " ABCDEFGHIJKLMNOPQRSTUVWXYZ").strip()
 
     if cfg.first_name_layout:
-        picked, _, _ = decode_layout(gray, cfg.first_name_layout, min_fill, top2_ratio)
+        picked, _, _ = decode_layout(gray, cfg.first_name_layout, min_fill, top2_ratio, min_score, min_abs)
         info["first_name"] = indices_to_text_col(picked, cfg.first_name_layout.labels or " ABCDEFGHIJKLMNOPQRSTUVWXYZ").strip()
 
     if cfg.id_layout:
-        picked, _, _ = decode_layout(gray, cfg.id_layout, min_fill, top2_ratio)
+        picked, _, _ = decode_layout(gray, cfg.id_layout, min_fill, top2_ratio, min_score, min_abs)
         info["student_id"] = indices_to_text_col(picked, cfg.id_layout.labels or "0123456789")
 
     if cfg.version_layout:
-        picked, _, _ = decode_layout(gray, cfg.version_layout, min_fill, top2_ratio)
+        picked, _, _ = decode_layout(gray, cfg.version_layout, min_fill, top2_ratio, min_score, min_abs)
         # selection_axis likely "row" with one row; picked is per-row list of column indices
         if cfg.version_layout.selection_axis == "row":
             # pick first (only) row

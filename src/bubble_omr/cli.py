@@ -6,13 +6,13 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-from bubble_omr.scoring_defaults import DEFAULTS, apply_overrides
 from rich import print as rprint
 
 # Config loader that now supports YAML (.yaml/.yml) and JSON
 from .config_io import load_config
 
 # Core modules
+from .scoring_defaults import DEFAULTS, apply_overrides
 from .align_core import align_single_pdf
 from .visualize_core import overlay_config
 from .grade_core import grade_pdf

@@ -125,7 +125,7 @@ def grade(
     label_density: bool = typer.Option(False, "--label-density",
         help="Overlay % fill text at bubble centers in annotated images."),
     # Thresholds and misc:
-    min_fill: float = typer.Option(0.40, "--min-fill", help="Min fill threshold for answers (0–1)"),
+    min_fill: float = typer.Option(0.20, "--min-fill", help="Min fill threshold for answers (0–1)"),
     top2_ratio: float = typer.Option(0.75, "--top2-ratio", help="Top1/Top2 ratio threshold for 'multi' detection"),
     dpi: int = typer.Option(300, "--dpi", help="Scan/PDF render DPI"),
 ):
@@ -150,8 +150,8 @@ def grade(
             dpi=dpi,
             min_fill=min_fill,
             top2_ratio=top2_ratio,
-            annotate_all_cells=annotate_all_cells,  # <-- now wired through
-            label_density=label_density,            # <-- now wired through
+            annotate_all_cells=annotate_all_cells, 
+            label_density=label_density, 
         )
     except Exception as e:
         rprint(f"[red]Grading failed:[/red] {e}")

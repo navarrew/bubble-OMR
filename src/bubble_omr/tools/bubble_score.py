@@ -90,7 +90,7 @@ def circle_mask(w: int, h: int) -> np.ndarray:
 def roi_otsu_fill_scores(
     gray: np.ndarray,
     rois: List[Tuple[int, int, int, int]],
-    inner_radius_ratio: float = 0.70,   # ignore printed ring; score inner 70%
+    inner_radius_ratio: float = 0.80,   # ignore printed ring; score inner 70%
     blur_ksize: int = 5,
 ) -> List[float]:
     """
@@ -151,55 +151,82 @@ def roi_otsu_fill_scores(
     return scores
 
 
-def roi_darkness_scores(gray: np.ndarray, rois: List[Tuple[int,int,int,int]]) -> List[float]:
-    """Return 0..1 darkness score (mean inverted intensity inside circle) for each ROI."""
-    scores: List[float] = [0.0] * len(rois)
-    mask_cache: dict[Tuple[int, int], np.ndarray] = {}
-    for idx, (x, y, w, h) in enumerate(rois):
-        crop = gray[y:y+h, x:x+w]
-        key = (w, h)
-        if key not in mask_cache:
-            mask_cache[key] = circle_mask(w, h)
-        m = mask_cache[key]
-        inside = crop[m == 255]
-        scores[idx] = float(np.mean(255 - inside) / 255.0) if inside.size else 0.0
-    return scores
+def _pick_single_from_scores(best_first: np.ndarray,
+                             min_fill: float,
+                             top2_ratio: float,
+                             min_score: float,
+                             min_abs: float) -> Optional[int]:
+    """
+    best_first: 1D array of scores for the candidates (higher is darker).
+                Must be length >= 1. We assume it's the set for one row (or one column).
+    Returns: winning index or None (blank/multi).
+    """
+    if best_first.size == 0:
+        return None
+
+    # Indices that would sort descending
+    order = np.argsort(best_first)[::-1]
+    best_idx = int(order[0])
+    top = float(best_first[best_idx])
+
+    second = float(best_first[order[1]]) if best_first.size > 1 else 0.0
+
+    # Blank rule: require a minimum absolute fill
+    if top < max(min_fill, min_abs):
+        return None  # blank
+
+    # Separation rules
+    sep_score = (top - second) * 100.0           # absolute gap in percentage points
+    sep_ratio_ok = (second <= top * top2_ratio)  # ratio separation
+
+    if (sep_score >= min_score) or sep_ratio_ok:
+        return best_idx
+    else:
+        return None  # multi/ambiguous
 
 
-def select_per_row(
-    scores: List[float], rows: int, cols: int, min_fill: float, top2_ratio: float
-) -> List[Optional[int]]:
-    """For each row, pick the best column if confident; else None."""
-    out: List[Optional[int]] = []
+def select_per_row(scores: List[float],
+                   rows: int,
+                   cols: int,
+                   min_fill: float,
+                   top2_ratio: float,
+                   min_score: float = 10.0,
+                   min_abs: float = 0.10) -> List[Optional[int]]:
+    """
+    For each row (length=cols), pick ONE column index or None using the combined rule.
+    `scores` is a flat list in row-major order: [r0c0, r0c1, ..., r0c{cols-1}, r1c0, ...]
+    """
+    arr = np.asarray(scores, dtype=float)
+    assert arr.size == rows * cols, f"scores length {arr.size} != rows*cols {rows*cols}"
+
+    picked: List[Optional[int]] = []
     for r in range(rows):
-        row_scores = scores[r*cols:(r+1)*cols]
-        order = np.argsort(row_scores)[::-1]
-        best = order[0]
-        best_val = row_scores[best]
-        second_val = row_scores[order[1]] if cols > 1 else 0.0
-        if best_val >= min_fill and (cols == 1 or (second_val <= top2_ratio * best_val)):
-            out.append(int(best))
-        else:
-            out.append(None)
-    return out
+        row_slice = arr[r * cols:(r + 1) * cols]
+        win = _pick_single_from_scores(row_slice, min_fill, top2_ratio, min_score, min_abs)
+        picked.append(win)
+    return picked
 
 
-def select_per_col(
-    scores: List[float], rows: int, cols: int, min_fill: float, top2_ratio: float
-) -> List[Optional[int]]:
-    """For each column, pick the best row if confident; else None."""
-    out: List[Optional[int]] = []
+def select_per_col(scores: List[float],
+                   rows: int,
+                   cols: int,
+                   min_fill: float,
+                   top2_ratio: float,
+                   min_score: float = 10.0,
+                   min_abs: float = 0.10) -> List[Optional[int]]:
+    """
+    For each column (length=rows), pick ONE row index or None using the combined rule.
+    `scores` is a flat list in row-major order.
+    """
+    arr = np.asarray(scores, dtype=float)
+    assert arr.size == rows * cols, f"scores length {arr.size} != rows*cols {rows*cols}"
+
+    picked: List[Optional[int]] = []
     for c in range(cols):
-        col_scores = [scores[r*cols + c] for r in range(rows)]
-        order = np.argsort(col_scores)[::-1]
-        best = order[0]
-        best_val = col_scores[best]
-        second_val = col_scores[order[1]] if rows > 1 else 0.0
-        if best_val >= min_fill and (rows == 1 or (second_val <= top2_ratio * best_val)):
-            out.append(int(best))
-        else:
-            out.append(None)
-    return out
+        col_slice = arr[c::cols]  # take every `cols` element starting at c
+        win = _pick_single_from_scores(col_slice, min_fill, top2_ratio, min_score, min_abs)
+        picked.append(win)
+    return picked
 
 # ------------------------------------------------------------------------------
 # Zone decoders
@@ -244,11 +271,13 @@ def indices_to_text_col(picked: List[Optional[int]], row_labels: str) -> str:
     """Map per-column selected row index → character; None → blank."""
     chars: List[str] = []
     for idx in picked:
-        if idx is None or idx < 0 or idx >= len(row_labels):
+        if idx is None or idx < 0 or idx > len(row_labels):
             chars.append("")
         else:
             chars.append(row_labels[idx])
     return "".join(chars)
+
+
 
 # ------------------------------------------------------------------------------
 # Key handling & scoring

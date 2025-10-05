@@ -59,7 +59,7 @@ def _annotate_names_ids(
     cfg: Config,
     label_density: bool,
     color_zone=(255, 0, 0),   # blue (B, G, R)
-    text_color=(255, 255, 255),
+    text_color=(255, 0, 255),
     thickness: int = 2,
 ) -> np.ndarray:
     """
@@ -78,7 +78,6 @@ def _annotate_names_ids(
             layout.questions, layout.choices
         )
         rois = centers_to_circle_rois(centers, W, H, layout.radius_pct)
-#        scores = roi_darkness_scores(gray, rois)  # 0..1 per bubble
         scores = roi_otsu_fill_scores(gray, rois, inner_radius_ratio=0.70, blur_ksize=5)
         for idx, (x, y, w, h) in enumerate(rois):
             cx, cy = x + w // 2, y + h // 2
@@ -171,10 +170,11 @@ def _annotate_answers(
 
                 cv2.circle(out, (cx, cy), radius, col, thickness, lineType=cv2.LINE_AA)
 
+				#here we add the text for the density of the pencil marks in the bubble
                 if label_density:
                     pct = int(round(100 * row_scores[c]))
                     cv2.putText(out, f"{pct}", (cx - 8, cy + 5),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 0, 255), 1, cv2.LINE_AA)
 
             q_global += 1
 

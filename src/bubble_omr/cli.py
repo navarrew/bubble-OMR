@@ -9,7 +9,7 @@ import typer
 from rich import print as rprint
 
 # Config loader that now supports YAML (.yaml/.yml) and JSON
-from .tools.bubble_score import load_config
+from .config_io import load_config
 
 # Core modules
 from .align_core import align_single_pdf
@@ -96,65 +96,68 @@ def visualize(
     """
     Overlay the config bubble zones on top of a PDF page to verify placement.
     """
-    # IMPORTANT: pass the *path*; overlay_config loads YAML/JSON internally.
     try:
-        overlay_config(input_pdf, config, out_image, dpi=dpi)
+        overlay_config(
+            config_path=config,
+            input_path=input_pdf,
+            out_image=out_image,
+            dpi=dpi,
+        )
     except Exception as e:
         rprint(f"[red]Visualization failed for {config}:[/red] {e}")
         raise typer.Exit(code=2)
 
     rprint(f"[green]Wrote:[/green] {out_image}")
-
-
-# ----------------------------- GRADE ---------------------------------
+    
+    
+#----------------------------- GRADE ---------------------------------
 @app.command()
 def grade(
     input_pdf: str = typer.Argument(..., help="Aligned scans PDF"),
     config: str = typer.Option(..., "--config", "-c", help="Config file (.yaml/.yml or .json) — YAML recommended"),
-    key_txt: str = typer.Option(..., "--key-txt", "-k", help="Answer key text file"),
-    total_questions: int = typer.Option(..., "--total-questions", "-n", help="Total number of questions"),
+    key_txt: Optional[str] = typer.Option(None, "--key-txt", "-k", help="Answer key text file (A/B/C/...). If provided, only first len(key) questions are graded/output."),
     out_csv: str = typer.Option("results.csv", "--out-csv", "-o", help="Output CSV of per-student results"),
     out_annotated_dir: Optional[str] = typer.Option(None, "--out-annotated-dir", help="Directory to write annotated sheets"),
-    annotate_all_cells: bool = typer.Option(False, "--annotate-all-cells", help="Annotate all bubbles, not just answers"),
-    mark_blanks_incorrect: bool = typer.Option(False, "--mark-blanks-incorrect", help="Count blanks as incorrect"),
-    label_density: bool = typer.Option(False, "--label-density", help="Label density values on annotations"),
+    # The following visual/threshold flags are kept and only the ones supported by grade_pdf are passed through:
+    annotate_all_cells: bool = typer.Option(False, "--annotate-all-cells", help="(reserved; not used by current grader)"),
+    mark_blanks_incorrect: bool = typer.Option(False, "--mark-blanks-incorrect", help="(reserved; not used by current grader)"),
+    label_density: bool = typer.Option(False, "--label-density", help="(reserved; not used by current grader)"),
     min_fill: float = typer.Option(0.40, "--min-fill", help="Min fill threshold for answers (0-1)"),
-    name_min_fill: float = typer.Option(0.15, "--name-min-fill", help="Min fill threshold for name grids (0-1)"),
-    min_score: float = typer.Option(2.0, "--min-score", help="Min score margin top1-top2 (density units)"),
+    name_min_fill: float = typer.Option(0.15, "--name-min-fill", help="(reserved; not used by current grader)"),
+    min_score: float = typer.Option(2.0, "--min-score", help="(reserved; not used by current grader)"),
     top2_ratio: float = typer.Option(0.75, "--top2-ratio", help="Top1/top2 ratio threshold"),
-    fix_warp: bool = typer.Option(False, "--fix-warp", help="Attempt small warp fix per page"),
-    warp_debug: bool = typer.Option(False, "--warp-debug", help="Write per-page warp debug PNGs"),
+    fix_warp: bool = typer.Option(False, "--fix-warp", help="(reserved; not used by current grader)"),
+    warp_debug: bool = typer.Option(False, "--warp-debug", help="(reserved; not used by current grader)"),
+    dpi: int = typer.Option(300, "--dpi", help="Scan/PDF render DPI"),
 ):
     """
-    Grade a set of aligned scans against an answer key; CSV output + optional annotations.
+    Grade aligned scans using axis-based config.
+    If a key is provided, ONLY the first len(key) questions are graded and written to CSV.
     """
-    # Preload cfg so our back-compat branch can pass a Config object if needed
+    # Optional: quick validation that the config path is readable
     try:
-        cfg = load_config(config)  # YAML/JSON supported
+        _ = load_config(config)
     except Exception as e:
         rprint(f"[red]Failed to load config {config}:[/red] {e}")
         raise typer.Exit(code=2)
 
-    grade_pdf(
-        input_pdf,
-        cfg,
-        key_txt=key_txt,
-        total_questions=total_questions,
-        out_csv=out_csv,
-        out_annotated_dir=out_annotated_dir,
-        annotate_all_cells=annotate_all_cells,
-        mark_blanks_incorrect=mark_blanks_incorrect,
-        label_density=label_density,
-        min_fill=min_fill,
-        name_min_fill=name_min_fill,
-        min_score=min_score,
-        top2_ratio=top2_ratio,
-        fix_warp=fix_warp,
-        warp_debug=warp_debug,
-    )
+    try:
+        # Call the new grader with the parameters it actually supports
+        grade_pdf(
+            input_path=input_pdf,
+            config_path=config,
+            out_csv=out_csv,
+            key_txt=key_txt,
+            out_annotated_dir=out_annotated_dir,
+            dpi=dpi,
+            min_fill=min_fill,
+            top2_ratio=top2_ratio,
+        )
+    except Exception as e:
+        rprint(f"[red]Grading failed:[/red] {e}")
+        raise typer.Exit(code=2)
 
     rprint(f"[green]Wrote results:[/green] {out_csv}")
-
 
 # ------------------------------ STATS --------------------------------
 @app.command()

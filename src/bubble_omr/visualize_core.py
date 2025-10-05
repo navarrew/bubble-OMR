@@ -1,92 +1,86 @@
 # src/bubble_omr/visualize_core.py
+#!/usr/bin/env python3
+"""
+visualize_core.py
+Visualize OMR bubble positions from an axis-based config.
+
+Exports:
+  - overlay_config(config_path, input_path, out_image, dpi=300, color=(0,255,0), thickness=2) -> str
+"""
 
 from __future__ import annotations
 from pathlib import Path
-from typing import Iterable, Optional, Tuple, Union
+from typing import Tuple
 
-from .tools.bubble_score import load_config, Config, GridSpec
+import cv2
+import numpy as np
+
+from .config_io import load_config, Config, GridLayout
 from .tools.zone_visualizer import (
-    load_input_image,        # (pdf_path, dpi) -> (bgr_img, (Wt, Ht))
-    zone_rect,               # (gs: GridSpec, Wt, Ht) -> (x0,y0,x1,y1)
-    cell_rects,              # (gs: GridSpec, Wt, Ht) -> Iterable[(x0,y0,x1,y1)]
-    draw_zone_rect,          # (img_bgr, (x0,y0,x1,y1), color=(...), thickness=...)
-    draw_cells,              # (img_bgr, cells: Iterable[tuple], color=(...), thickness=...)
+    grid_centers_axis_mode,   # centers (normalized) from (x_tl,y_tl)->(x_br,y_br)
+    centers_to_radius_px,     # centers -> (pixel centers, pixel radius)
 )
 
-def _overlay_one_grid(
-    img_bgr,
-    gs: GridSpec,
-    Wt: int,
-    Ht: int,
-    zone_color: Tuple[int, int, int] = (0, 255, 0),
-    cell_color: Tuple[int, int, int] = (255, 0, 0),
-    thickness: int = 2,
-    label: Optional[str] = None,
-):
-    """Draw a single GridSpec: zone rectangle + all cell rects."""
-    x0, y0, x1, y1 = zone_rect(gs, Wt, Ht)
-    draw_zone_rect(img_bgr, (x0, y0, x1, y1), color=zone_color, thickness=thickness)
+def _load_input_image(path: str, dpi: int = 300) -> np.ndarray:
+    """Return a BGR image for either a PDF (first page) or a raster image."""
+    p = Path(path)
+    if p.suffix.lower() == ".pdf":
+        try:
+            from pdf2image import convert_from_path
+        except Exception as e:
+            raise RuntimeError("pdf2image is required to read PDFs. Install with `pip install pdf2image`.") from e
+        pages = convert_from_path(str(p), dpi=dpi)
+        if not pages:
+            raise ValueError(f"No pages in PDF: {path}")
+        rgb = np.array(pages[0])  # first page as RGB
+        return cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+    img = cv2.imread(str(p), cv2.IMREAD_COLOR)
+    if img is None:
+        raise FileNotFoundError(f"Could not read image: {path}")
+    return img
 
-    cells = cell_rects(gs, Wt, Ht)
-    draw_cells(img_bgr, cells, color=cell_color, thickness=1)
-
-    if label:
-        import cv2 as cv
-        cv.putText(
-            img_bgr, label, (int(x0) + 6, int(y0) + 22),
-            cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 3, cv.LINE_AA
-        )
-        cv.putText(
-            img_bgr, label, (int(x0) + 6, int(y0) + 22),
-            cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2, cv.LINE_AA
-        )
+def _draw_layout_circles(
+    img_bgr: np.ndarray,
+    layout: GridLayout,
+    color: Tuple[int, int, int] = (0, 255, 0),
+    thickness: int = 2
+) -> None:
+    """Draw circles in-place for one layout using axis-mode geometry."""
+    h, w = img_bgr.shape[:2]
+    centers = grid_centers_axis_mode(
+        layout.x_topleft, layout.y_topleft,
+        layout.x_bottomright, layout.y_bottomright,
+        layout.questions, layout.choices
+    )
+    pts_px, r_px = centers_to_radius_px(centers, w, h, layout.radius_pct)
+    for (cx, cy) in pts_px:
+        cv2.circle(img_bgr, (cx, cy), r_px, color, thickness, lineType=cv2.LINE_AA)
 
 def overlay_config(
-    input_pdf: str,
-    config_or_path: Union[str, Path, Config],
-    out_image: str = "config_overlay.png",
+    config_path: str,
+    input_path: str,
+    out_image: str,
     dpi: int = 300,
-    label_blocks: bool = True,
-):
+    color: Tuple[int, int, int] = (0, 255, 0),
+    thickness: int = 2
+) -> str:
     """
-    Render the first page of `input_pdf` and overlay all configured grids
-    from a Config object or path to YAML/JSON. Writes `out_image` (PNG).
+    Load config + first page of input, draw axis-based circles for all layouts,
+    write PNG to out_image. Returns the path written.
     """
-    # 1) Load config if a path/string was provided
-    if isinstance(config_or_path, (str, Path)):
-        cfg: Config = load_config(str(config_or_path))
-    else:
-        cfg: Config = config_or_path  # already a Config
+    cfg: Config = load_config(config_path)
+    img = _load_input_image(input_path, dpi=dpi)
 
-    # 2) Render page to BGR
-    img_bgr, (Wt, Ht) = load_input_image(input_pdf, dpi=dpi)
+    # Answer blocks
+    for layout in cfg.answer_layouts:
+        _draw_layout_circles(img, layout, color=color, thickness=thickness)
 
-    # 3) Answer layout(s)
-    answer_blocks: Iterable[GridSpec] = cfg.answer_layouts or ([cfg.answer_layout] if cfg.answer_layout else [])
-    for i, gs in enumerate(answer_blocks, start=1):
-        lbl = f"answers[{i}]" if label_blocks and (cfg.answer_layouts and len(cfg.answer_layouts) > 1) else "answers"
-        _overlay_one_grid(img_bgr, gs, Wt, Ht, zone_color=(0, 255, 0), cell_color=(0, 200, 0), label=lbl)
+    # Optional blocks: last/first name, ID, version
+    for opt in ("last_name_layout", "first_name_layout", "id_layout", "version_layout"):
+        lay = getattr(cfg, opt, None)
+        if lay is not None:
+            _draw_layout_circles(img, lay, color=color, thickness=thickness)
 
-    # 4) Optional name blocks (last/first/name), ID, version
-    if cfg.last_name_layout:
-        _overlay_one_grid(img_bgr, cfg.last_name_layout, Wt, Ht, zone_color=(255, 165, 0), cell_color=(255, 140, 0),
-                          label="last_name")
-    if cfg.first_name_layout:
-        _overlay_one_grid(img_bgr, cfg.first_name_layout, Wt, Ht, zone_color=(255, 165, 0), cell_color=(255, 140, 0),
-                          label="first_name")
-    if cfg.name_layout:
-        _overlay_one_grid(img_bgr, cfg.name_layout, Wt, Ht, zone_color=(255, 165, 0), cell_color=(255, 140, 0),
-                          label="name")
-    if cfg.id_layout:
-        _overlay_one_grid(img_bgr, cfg.id_layout, Wt, Ht, zone_color=(0, 165, 255), cell_color=(0, 140, 255),
-                          label="id")
-    if cfg.version_layout:
-        _overlay_one_grid(img_bgr, cfg.version_layout, Wt, Ht, zone_color=(147, 112, 219), cell_color=(138, 43, 226),
-                          label="version")
-
-    # 5) Save PNG
-    import cv2 as cv
-    out_path = Path(out_image).expanduser().resolve()
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    cv.imwrite(str(out_path), img_bgr)
-    return str(out_path)
+    if not cv2.imwrite(out_image, img):
+        raise IOError(f"Failed to write {out_image}")
+    return out_image

@@ -1,178 +1,121 @@
+# src/bubble_omr/grade_core.py
 from __future__ import annotations
+from typing import Optional, List, Tuple
+import os
+import csv
+import cv2
+import numpy as np
 
-from typing import Optional, Dict, Union
-import os, csv, cv2
 from .tools.bubble_score import (
-    load_config,            # <-- use this; returns a Config
-    Config,
-    load_key_map, imread_any, ensure_dir, make_csv_header,
-    write_key_row, load_and_warp, decode_grid_symbols, decode_answers
+    load_pages,            # load PDF pages or images into BGR arrays
+    process_page_all,      # decode last/first name, ID, version, answers
+    load_key_txt,          # load key as list[str] like ["A","B",...]
+    score_against_key,     # compare predictions to key
+)
+from .config_io import load_config, Config, GridLayout
+from .tools.zone_visualizer import (
+    grid_centers_axis_mode,
+    centers_to_radius_px,
 )
 
+def _ensure_dir(path: str) -> None:
+    if path and not os.path.isdir(path):
+        os.makedirs(path, exist_ok=True)
 
-# Config + tools
-from .tools.bubble_score import (
-    load_config,      # ← use this; handles .yaml/.yml/.json
-    Config,
-    load_key_map,
-    imread_any,
-    ensure_dir,
-    make_csv_header,
-    write_key_row,
-    load_and_warp,
-    decode_grid_symbols,
-    decode_answers,
-)
+def _annotate_page(img_bgr: np.ndarray, cfg: Config,
+                   color=(0, 255, 0), thickness=2) -> np.ndarray:
+    """Draw the exact circles used for decoding (for debugging/visual QA)."""
+    h, w = img_bgr.shape[:2]
+    out = img_bgr.copy()
+    def _draw_layout(layout: GridLayout):
+        centers = grid_centers_axis_mode(
+            layout.x_topleft, layout.y_topleft,
+            layout.x_bottomright, layout.y_bottomright,
+            layout.questions, layout.choices
+        )
+        pts, r_px = centers_to_radius_px(centers, w, h, layout.radius_pct)
+        for (cx, cy) in pts:
+            cv2.circle(out, (cx, cy), r_px, color, thickness, lineType=cv2.LINE_AA)
+
+    for lay in (cfg.answer_layouts or []):
+        _draw_layout(lay)
+    for name in ("last_name_layout", "first_name_layout", "id_layout", "version_layout"):
+        lay = getattr(cfg, name, None)
+        if lay is not None:
+            _draw_layout(lay)
+    return out
 
 def grade_pdf(
     input_path: str,
-    config_or_path: Union[str, os.PathLike, Config],   # <— renamed & widened
-    key_txt: str,
-    total_questions: int,
-    out_csv: str = "results.csv",
+    config_path: str,
+    out_csv: str,
+    key_txt: Optional[str] = None,
     out_annotated_dir: Optional[str] = None,
-    annotate_all_cells: bool = False,
-    mark_blanks_incorrect: bool = False,
-    label_density: bool = False,
-    min_fill: float = 0.40,
-    name_min_fill: float = 0.15,
-    min_score: float = 2.0,
-    top2_ratio: float = 0.75,
-    fix_warp: bool = False,
-    warp_debug: bool = False,
+    dpi: int = 300,
+    min_fill: float = 0.20,
+    top2_ratio: float = 0.80,
 ) -> str:
-    # --- normalize config to a Config object ---
-    if isinstance(config_or_path, Config):
-        cfg = config_or_path
-    elif isinstance(config_or_path, (str, os.PathLike)):
-        cfg = load_config(str(config_or_path))  # YAML/JSON file -> Config
-    else:
-        raise TypeError(f"config_or_path must be a path or Config, not {type(config_or_path)}")
+    """
+    Grade a PDF or image stack using axis-based geometry.
 
-    key_map: Dict[int, str] = load_key_map(key_txt, total_questions)
+    Behavior:
+      - If key is provided: limit output columns and scoring to first len(key) questions.
+      - If no key: output all decoded questions.
+    """
+    cfg: Config = load_config(config_path)
 
-    images = imread_any(input_path)
+    # Load pages and optional key
+    pages = load_pages([input_path], dpi=dpi)
+    key: Optional[List[str]] = load_key_txt(key_txt) if key_txt else None
+
+    # Determine how many Qs to output
+    total_q = sum(a.questions for a in cfg.answer_layouts)
+    q_out = len(key) if key else total_q
+    q_out = max(0, min(q_out, total_q))  # clamp
+
+    # CSV header
+    header = ["page_index", "LastName", "FirstName", "StudentID", "Version"] \
+             + [f"Q{i+1}" for i in range(q_out)]
+    if key:
+        header += ["score", "total"]
+
+    _ensure_dir(os.path.dirname(out_csv) or ".")
     if out_annotated_dir:
-        ensure_dir(out_annotated_dir)
+        _ensure_dir(out_annotated_dir)
 
-    do_warp = bool(fix_warp)
-    header = make_csv_header(total_questions)
+    with open(out_csv, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
 
-    with open(out_csv, "w", newline="", encoding="utf-8") as out_csv_fp:
-        writer = csv.DictWriter(out_csv_fp, fieldnames=header)
-        writer.writeheader()
-        write_key_row(writer, key_map, total_questions)
-
-        for page_idx, img in enumerate(images, start=1):
-            warp_dbg_path = (
-                os.path.join(out_annotated_dir, f"page{page_idx:03d}_warpdebug.png")
-                if (warp_debug and out_annotated_dir)
-                else None
+        for page_idx, img_bgr in enumerate(pages, start=1):
+            info, answers = process_page_all(
+                img_bgr, cfg, min_fill=min_fill, top2_ratio=top2_ratio
             )
 
-            warped, gray, thresh = load_and_warp(
-                img, target_height=1600, do_warp=do_warp, warp_debug_path=warp_dbg_path
-            )
-            vis = warped.copy() if out_annotated_dir else None
+            # Slice answers to the number of columns we want to emit
+            answers_out = answers[:q_out]
+            answers_csv = [a if a is not None else "" for a in answers_out]
 
-            def get_text(layout):
-                if layout is None:
-                    return ""
-                return decode_grid_symbols(
-                    thresh,
-                    layout,
-                    name_min_fill,
-                    annotate=bool(annotate_all_cells),
-                    label_density=bool(label_density),
-                    vis=vis,
-                )
+            row = [
+                str(page_idx),
+                info.get("last_name", ""),
+                info.get("first_name", ""),
+                info.get("student_id", ""),
+                info.get("version", ""),
+            ] + answers_csv
 
-            last_name  = get_text(getattr(cfg, "last_name_layout", None))
-            first_name = get_text(getattr(cfg, "first_name_layout", None))
-            name_full_layout = getattr(cfg, "name_layout", None)
-            if name_full_layout is not None:
-                name_full = get_text(name_full_layout)
-            else:
-                name_full = (last_name + " " + first_name).strip()
+            if key:
+                # Also slice key in case it’s longer than decoded answers
+                key_out = key[:q_out]
+                got, tot = score_against_key([a or "" for a in answers_out], key_out)
+                row += [str(got), str(tot)]
 
-            student_id = get_text(getattr(cfg, "id_layout", None))
-            version    = get_text(getattr(cfg, "version_layout", None))
-
-            correct = wrong = blank = 0
-            qvals: Dict[str, str] = {}
-
-            picks = decode_answers(
-                thresh,
-                cfg,  # Config object
-                total_questions,
-                min_fill=min_fill,
-                min_score=min_score,
-                top2_ratio=top2_ratio,
-                annotate=bool(annotate_all_cells),
-                label_density=bool(label_density),
-                vis=vis,
-                key_map=key_map,
-            )
-
-            # normalize picks into (q_index, answer_str)
-            def _iter_q_answer(p, n_total: int):
-                if isinstance(p, dict):
-                    for k, v in p.items():
-                        yield int(k), ("" if v is None else str(v))
-                    return
-                if isinstance(p, tuple) and len(p) >= 1 and isinstance(p[0], (list, tuple)):
-                    answers = p[0]
-                    for i, v in enumerate(answers, start=1):
-                        yield i, ("" if v is None else str(v))
-                    return
-                if isinstance(p, (list, tuple)):
-                    for i, v in enumerate(p, start=1):
-                        yield i, ("" if v is None else str(v))
-                    return
-                try:
-                    seq = list(p)
-                    for i, v in enumerate(seq, start=1):
-                        yield i, ("" if v is None else str(v))
-                except TypeError:
-                    raise TypeError(f"Unexpected return shape from decode_answers: {type(p)}")
-
-            for i, pick in _iter_q_answer(picks, total_questions):
-                k = key_map.get(int(i), "")
-                if pick == "":
-                    if mark_blanks_incorrect:
-                        blank += 1
-                    qvals[f"Q{int(i)}"] = ""
-                else:
-                    if k and pick == str(k):
-                        correct += 1
-                    else:
-                        wrong += 1
-                    qvals[f"Q{int(i)}"] = pick
-
-            total = total_questions
-            multi = 0
-            percent = round((100.0 * correct / total), 2) if total > 0 else 0.0
-
-            row = {
-                "sheet":   f"p{page_idx}",
-                "name":    name_full,
-                "last_name":  last_name,
-                "first_name": first_name,
-                "id":      student_id,
-                "version": version,
-                "total":   total,
-                "correct": correct,
-                "wrong":   wrong,
-                "blank":   blank,
-                "multi":   multi,
-                "percent": percent,
-            }
-            for i in range(1, total_questions + 1):
-                row[f"Q{i}"] = qvals.get(f"Q{i}", "")
             writer.writerow(row)
 
-            if out_annotated_dir and vis is not None:
-                out_png = os.path.join(out_annotated_dir, f"aligned_scans_p{page_idx}_annotated.png")
+            # Optional per-page overlay for QA
+            if out_annotated_dir:
+                vis = _annotate_page(img_bgr, cfg, color=(0, 255, 0), thickness=2)
+                out_png = os.path.join(out_annotated_dir, f"page_{page_idx:03d}_overlay.png")
                 cv2.imwrite(out_png, vis)
 
     return out_csv

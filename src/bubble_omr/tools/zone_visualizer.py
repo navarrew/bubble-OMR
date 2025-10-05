@@ -1,94 +1,196 @@
-# src/bubble_omr/tools/zone_visualizer.py
+#!/usr/bin/env python3
+"""
+zone_visualizer.py
+------------------
+Axis-based overlay visualizer for bubble-OMR sheets.
+
+It reads the same config used by the scorer (see config_io.py), computes bubble
+centers from top-left and bottom-right reference centers, and draws *circles only*
+at those centers with the configured radius.
+
+CLI examples:
+  python zone_visualizer.py --config 64_question_config.yaml 64_question_template.pdf
+  python zone_visualizer.py --config 64_question_config.yaml page1.png page2.png --out-dir overlays
+
+Notes:
+- Requires: opencv-python, numpy, pyyaml, pdf2image (if you input PDFs).
+- This is strictly a visualization helper; it does not grade.
+"""
+
 from __future__ import annotations
-from typing import Iterable, List, Tuple
-from pathlib import Path
+import argparse
+import os
+from typing import List, Tuple, Iterable
 
-import cv2 as cv
 import numpy as np
-import fitz  # PyMuPDF
+import cv2
 
-# ---------- I/O ----------
-def load_input_image(path: str, dpi: int = 300) -> Tuple[np.ndarray, Tuple[int, int]]:
-    """
-    Load first page of a PDF at the given DPI, or a raster image.
-    Returns (BGR image, (width_px, height_px)).
-    """
-    p = str(path)
-    if p.lower().endswith(".pdf"):
-        doc = fitz.open(p)
-        if len(doc) < 1:
-            raise RuntimeError(f"No pages in PDF: {p}")
-        page = doc.load_page(0)
-        zoom = dpi / 72.0
-        mat = fitz.Matrix(zoom, zoom)
-        pix = page.get_pixmap(matrix=mat, alpha=False)
-        img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, 3)
-        img = cv.cvtColor(img, cv.COLOR_RGB2BGR)
-        doc.close()
-    else:
-        img = cv.imread(p, cv.IMREAD_COLOR)
-        if img is None:
-            raise FileNotFoundError(f"Could not read image: {p}")
-    Ht, Wt = img.shape[:2]
-    return img, (Wt, Ht)
+# Local import within the tools package
+from ..config_io import load_config, Config, GridLayout
 
-# ---------- geometry helpers (normalized zone -> pixel rects) ----------
-def zone_rect(gs, Wt: int, Ht: int) -> Tuple[int, int, int, int]:
-    """
-    Convert gs.zone = (x0,y0,x1,y1) in 0..1 normalized coords to integer pixel coords.
-    Returns (x0, y0, x1, y1).
-    """
-    x0n, y0n, x1n, y1n = gs.zone
-    x0 = int(round(x0n * Wt))
-    y0 = int(round(y0n * Ht))
-    x1 = int(round(x1n * Wt))
-    y1 = int(round(y1n * Ht))
-    # clamp & ensure at least 1px size
-    x0 = max(0, min(x0, Wt - 1)); y0 = max(0, min(y0, Ht - 1))
-    x1 = max(x0 + 1, min(x1, Wt));  y1 = max(y0 + 1, min(y1, Ht))
-    return x0, y0, x1, y1
+# ------------------------------------------------------------------------------
+# Geometry (identical logic to scorer)
+# ------------------------------------------------------------------------------
 
-def cell_rects(gs, Wt: int, Ht: int) -> List[Tuple[int, int, int, int]]:
+def grid_centers_axis_mode(
+    x_tl: float, y_tl: float, x_br: float, y_br: float,
+    questions: int, choices: int
+) -> List[Tuple[float, float]]:
     """
-    Compute per-cell rectangles within the zone for a grid of (rows x cols).
-    Returns list of (x0, y0, x1, y1).
+    Return normalized (x%, y%) centers for a questions x choices grid
+    by interpolating between top-left and bottom-right bubble centers.
     """
-    x0, y0, x1, y1 = zone_rect(gs, Wt, Ht)
-    rows, cols = int(gs.rows), int(gs.cols)
-    pad = float(getattr(gs, "pad", 0.12) or 0.0)
-    W = x1 - x0; H = y1 - y0
-    cw = W / cols; ch = H / rows
-    px = pad * cw; py = pad * ch
+    centers: List[Tuple[float, float]] = []
+    q_den = max(1, questions - 1)
+    c_den = max(1, choices - 1)
+    for r in range(questions):
+        v = r / q_den
+        y = y_tl + (y_br - y_tl) * v
+        for c in range(choices):
+            u = c / c_den
+            x = x_tl + (x_br - x_tl) * u
+            centers.append((x, y))
+    return centers
 
-    rects: List[Tuple[int, int, int, int]] = []
-    for r in range(rows):
-        for c in range(cols):
-            rx0 = int(round(x0 + c * cw + px))
-            ry0 = int(round(y0 + r * ch + py))
-            rx1 = int(round(x0 + (c + 1) * cw - px))
-            ry1 = int(round(y0 + (r + 1) * ch - py))
-            # ensure valid
-            if rx1 <= rx0: rx1 = rx0 + 1
-            if ry1 <= ry0: ry1 = ry0 + 1
-            rects.append((rx0, ry0, rx1, ry1))
-    return rects
 
-# ---------- drawing ----------
-def draw_zone_rect(img_bgr: np.ndarray, rect: Tuple[int, int, int, int],
-                   color=(0, 255, 0), thickness: int = 2) -> None:
-    x0, y0, x1, y1 = rect
-    cv.rectangle(img_bgr, (x0, y0), (x1, y1), color, thickness)
+def centers_to_radius_px(
+    centers_pct: Iterable[Tuple[float, float]],
+    img_w: int, img_h: int,
+    radius_pct: float
+) -> Tuple[List[Tuple[int, int]], int]:
+    """
+    Convert normalized centers to pixel centers, and return a pixel radius
+    computed from radius_pct (fraction of image width).
+    """
+    r_px = max(1, int(round(radius_pct * img_w)))
+    pts_px: List[Tuple[int, int]] = []
+    for (cxp, cyp) in centers_pct:
+        cx = int(round(float(cxp) * img_w))
+        cy = int(round(float(cyp) * img_h))
+        # clamp to image
+        cx = max(0, min(cx, img_w - 1))
+        cy = max(0, min(cy, img_h - 1))
+        pts_px.append((cx, cy))
+    return pts_px, r_px
 
-def draw_cells(img_bgr: np.ndarray, rects: Iterable[Tuple[int, int, int, int]],
-               color=(0, 255, 0), thickness: int = 1, shape: str | None = None) -> None:
+
+# ------------------------------------------------------------------------------
+# I/O helpers: PDF/images
+# ------------------------------------------------------------------------------
+
+def load_pages(paths: List[str], dpi: int = 300) -> List[np.ndarray]:
     """
-    Draw each cell. If `shape == "circle"` or gs.shape == "circle" at the callsite,
-    draw inscribed circles, else rectangles.
+    Load pages from input files. For PDFs, uses pdf2image; for images, read with OpenCV.
+    Returns a list of BGR np.ndarrays.
     """
-    for (x0, y0, x1, y1) in rects:
-        if shape == "circle":
-            cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
-            r = int(round(0.45 * min(x1 - x0, y1 - y0)))
-            cv.circle(img_bgr, (cx, cy), max(1, r), color, thickness)
+    images: List[np.ndarray] = []
+    for p in paths:
+        ext = os.path.splitext(p)[1].lower()
+        if ext in (".pdf",):
+            try:
+                from pdf2image import convert_from_path
+            except Exception as e:
+                raise RuntimeError("pdf2image is required to read PDFs. Install with `pip install pdf2image`") from e
+            pil_pages = convert_from_path(p, dpi=dpi)
+            for pg in pil_pages:
+                rgb = np.array(pg)  # HxWx3 RGB
+                bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+                images.append(bgr)
         else:
-            cv.rectangle(img_bgr, (x0, y0), (x1, y1), color, thickness)
+            img = cv2.imread(p, cv2.IMREAD_COLOR)
+            if img is None:
+                raise FileNotFoundError(f"Could not read image: {p}")
+            images.append(img)
+    return images
+
+
+# ------------------------------------------------------------------------------
+# Drawing
+# ------------------------------------------------------------------------------
+
+def draw_layout_circles(
+    img_bgr: np.ndarray,
+    layout: GridLayout,
+    color: Tuple[int, int, int] = (0, 255, 0),
+    thickness: int = 2
+) -> np.ndarray:
+    """
+    Draw circles at all bubble centers for a single layout.
+    Returns the modified image (in-place safe).
+    """
+    h, w = img_bgr.shape[:2]
+    centers = grid_centers_axis_mode(
+        layout.x_topleft, layout.y_topleft,
+        layout.x_bottomright, layout.y_bottomright,
+        layout.questions, layout.choices
+    )
+    pts_px, r_px = centers_to_radius_px(centers, w, h, layout.radius_pct)
+
+    for (cx, cy) in pts_px:
+        cv2.circle(img_bgr, (cx, cy), r_px, color, thickness, lineType=cv2.LINE_AA)
+
+    return img_bgr
+
+
+def visualize_page(
+    img_bgr: np.ndarray,
+    cfg: Config,
+    color: Tuple[int, int, int] = (0, 255, 0),
+    thickness: int = 2
+) -> np.ndarray:
+    """
+    Draw circles for all answer_layouts onto a copy of the page image and return it.
+    """
+    canvas = img_bgr.copy()
+    for layout in cfg.answer_layouts:
+        canvas = draw_layout_circles(canvas, layout, color=color, thickness=thickness)
+    # Optional: add others (id_layout, names, version) once defined in new format.
+    for opt_name in ("id_layout", "last_name_layout", "first_name_layout", "version_layout"):
+        lay = getattr(cfg, opt_name, None)
+        if lay is not None:
+            canvas = draw_layout_circles(canvas, lay, color=color, thickness=thickness)
+    return canvas
+
+
+# ------------------------------------------------------------------------------
+# CLI
+# ------------------------------------------------------------------------------
+
+def main():
+    ap = argparse.ArgumentParser(description="Visualize bubble centers (circles only) using axis-based geometry.")
+    ap.add_argument("--config", required=True, help="YAML config path (axis-mode fields).")
+    ap.add_argument("--out-dir", default="overlays", help="Directory to write overlay PNGs.")
+    ap.add_argument("--dpi", type=int, default=300, help="DPI when rasterizing PDFs.")
+    ap.add_argument("--thickness", type=int, default=2, help="Circle outline thickness (pixels).")
+    ap.add_argument("--color", default="0,255,0",
+                    help="B,G,R color for circles (e.g., '0,255,0' for green).")
+    ap.add_argument("inputs", nargs="+", help="PDF(s) or image file(s) to visualize.")
+    args = ap.parse_args()
+
+    # Parse color
+    try:
+        bgr = tuple(int(v) for v in args.color.split(","))
+        if len(bgr) != 3:
+            raise ValueError
+        color = (bgr[0], bgr[1], bgr[2])
+    except Exception:
+        raise ValueError("--color must be 'B,G,R' like '0,255,0'")
+
+    cfg = load_config(args.config)
+    pages = load_pages(args.inputs, dpi=args.dpi)
+
+    os.makedirs(args.out_dir, exist_ok=True)
+
+    for i, img in enumerate(pages):
+        overlay = visualize_page(img, cfg, color=color, thickness=args.thickness)
+        out_path = os.path.join(args.out_dir, f"overlay_page_{i+1}.png")
+        ok = cv2.imwrite(out_path, overlay)
+        if not ok:
+            raise IOError(f"Failed to write {out_path}")
+        print(f"[OK] Wrote {out_path}")
+
+    print(f"[DONE] {len(pages)} page(s) processed. Overlays in: {args.out_dir}")
+
+
+if __name__ == "__main__":
+    main()

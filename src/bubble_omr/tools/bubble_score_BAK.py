@@ -350,7 +350,7 @@ def process_page_all(
     # Answers
     answers: List[Optional[str]] = []
     for i, layout in enumerate(cfg.answer_layouts):
-        picked, _, _ = decode_layout(gray, layout, min_fill, top2_ratio, min_score, min_abs)  # per-row indices
+        picked, _, _ = decode_layout(gray, layout, min_fill, top2_ratio)  # per-row indices
         choice_labels = list(layout.labels) if layout.labels else [chr(ord('A') + k) for k in range(layout.choices)]
         row_labels = indices_to_labels_row(picked, layout.choices, choice_labels)
         answers.extend(row_labels)

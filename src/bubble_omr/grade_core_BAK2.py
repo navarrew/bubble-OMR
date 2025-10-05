@@ -121,8 +121,6 @@ def _annotate_answers(
     Optionally put % fill text in each bubble (label_density=True).
     Returns a new image with drawings (does not modify input in place).
     """
-    min_score=min_score,
-    min_abs=min_abs,
     out = img_bgr.copy()
     H, W = out.shape[:2]
     key_seq = [k.upper() for k in key_letters] if key_letters else None
@@ -203,7 +201,6 @@ def grade_pdf(
     annotate_all_cells: bool = False,
     label_density: bool = False,
 ) -> str:
-    
     """
     Grade a PDF or image stack using axis-based geometry.
 
@@ -328,8 +325,6 @@ def grade_pdf(
                     annotate_all_cells=annotate_all_cells,
                     min_fill=min_fill,
                     top2_ratio=top2_ratio,
-                    min_score=min_score,
-                    min_abs=min_abs
                 )
                 out_png = os.path.join(out_annotated_dir, f"page_{page_idx:03d}_overlay.png")
                 cv2.imwrite(out_png, vis)

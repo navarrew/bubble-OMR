@@ -120,21 +120,24 @@ def grade(
         help="Answer key file (A/B/C/... one per line). If provided, only first len(key) questions are graded/output."),
     out_csv: str = typer.Option("results.csv", "--out-csv", "-o", help="Output CSV of per-student results"),
     out_annotated_dir: Optional[str] = typer.Option(None, "--out-annotated-dir", help="Directory to write annotated sheets"),
-    # These two are active and supported by grade_pdf:
     annotate_all_cells: bool = typer.Option(False, "--annotate-all-cells",
         help="Draw every bubble in each row (not just the chosen one)."),
     label_density: bool = typer.Option(False, "--label-density",
         help="Overlay % fill text at bubble centers in annotated images."),
-    # Thresholds and misc:
-    min_fill: float = typer.Option(None, \"--min-fill\", help=f\"Min fill threshold for answers (0–1) (default {DEFAULTS.min_fill})\")"),
-    top2_ratio: float = typer.Option(None, \"--top2-ratio\", help=f\"Top1/Top2 ratio threshold (default {DEFAULTS.top2_ratio})\"),
     dpi: int = typer.Option(300, "--dpi", help="Scan/PDF render DPI"),
+    min_fill: Optional[float] = typer.Option(None, "--min-fill",
+        help=f"Min fill threshold for answers (0–1) (default {DEFAULTS.min_fill})"),
+    top2_ratio: Optional[float] = typer.Option(None, "--top2-ratio",
+        help=f"Top1/Top2 ratio threshold (default {DEFAULTS.top2_ratio})"),
+    min_score: Optional[float] = typer.Option(None, "--min-score",
+        help=f"Absolute separation in percentage points (default {DEFAULTS.min_score})"),
+    min_abs: Optional[float] = typer.Option(None, "--min-abs",
+        help=f"Absolute minimum fill guard (0–1) (default {DEFAULTS.min_abs})"),
 ):
     """
     Grade aligned scans using axis-based config.
     If a key is provided, ONLY the first len(key) questions are graded and written to CSV.
     """
-    # Quick config sanity so we fail early with a useful error
     try:
         _ = load_config(config)
     except Exception as e:
@@ -142,9 +145,12 @@ def grade(
         raise typer.Exit(code=2)
 
     try:
-        scoring = apply_overrides(min_fill=scoring.min_fill, top2_ratio=scoring.top2_ratio,
-            min_score=scoring.min_score,
-            min_abs=scoring.min_abs, min_score=min_score, min_abs=min_abs)
+        scoring = apply_overrides(
+            min_fill=min_fill,
+            top2_ratio=top2_ratio,
+            min_score=min_score,
+            min_abs=min_abs,
+        )
 
         grade_pdf(
             input_path=input_pdf,
@@ -157,14 +163,15 @@ def grade(
             top2_ratio=scoring.top2_ratio,
             min_score=scoring.min_score,
             min_abs=scoring.min_abs,
-            annotate_all_cells=annotate_all_cells, 
-            label_density=label_density, 
+            annotate_all_cells=annotate_all_cells,
+            label_density=label_density,
         )
     except Exception as e:
         rprint(f"[red]Grading failed:[/red] {e}")
         raise typer.Exit(code=2)
 
     rprint(f"[green]Wrote results:[/green] {out_csv}")
+
 
 # ------------------------------ STATS --------------------------------
 @app.command()

@@ -104,6 +104,8 @@ def _annotate_answers(
     annotate_all_cells: bool,
     min_fill: float,
     top2_ratio: float,
+    min_score: float,
+    min_abs: float,
     color_correct=(0, 200, 0),
     color_incorrect=(0, 0, 255),
     color_blank=(160, 160, 160),
@@ -192,8 +194,10 @@ def grade_pdf(
     key_txt: Optional[str] = None,
     out_annotated_dir: Optional[str] = None,
     dpi: int = 300,
-    min_fill: float = 0.20,
-    top2_ratio: float = 0.80,
+    min_fill: float,
+    top2_ratio: float,
+    min_score: float,
+    min_abs: float,
     annotate_all_cells: bool = False,
     label_density: bool = False,
 ) -> str:
@@ -235,7 +239,7 @@ def grade_pdf(
 
         for page_idx, img_bgr in enumerate(pages, start=1):
             # Decode all fields using the shared axis-mode pipeline
-            info, answers = process_page_all(img_bgr, cfg, min_fill=min_fill, top2_ratio=top2_ratio)
+            info, answers = process_page_all(img_bgr, cfg, min_fill=min_fill, top2_ratio=top2_ratio, min_score=min_score, min_abs=min_abs)
 
             # Limit answers to the Qs we output (based on key length if present)
             answers_out = answers[:q_out]

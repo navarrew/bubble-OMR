@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 import typer
+from bubble_omr.scoring_defaults import DEFAULTS, apply_overrides
 from rich import print as rprint
 
 # Config loader that now supports YAML (.yaml/.yml) and JSON
@@ -125,8 +126,8 @@ def grade(
     label_density: bool = typer.Option(False, "--label-density",
         help="Overlay % fill text at bubble centers in annotated images."),
     # Thresholds and misc:
-    min_fill: float = typer.Option(0.20, "--min-fill", help="Min fill threshold for answers (0–1)"),
-    top2_ratio: float = typer.Option(0.75, "--top2-ratio", help="Top1/Top2 ratio threshold for 'multi' detection"),
+    min_fill: float = typer.Option(None, \"--min-fill\", help=f\"Min fill threshold for answers (0–1) (default {DEFAULTS.min_fill})\")"),
+    top2_ratio: float = typer.Option(None, \"--top2-ratio\", help=f\"Top1/Top2 ratio threshold (default {DEFAULTS.top2_ratio})\"),
     dpi: int = typer.Option(300, "--dpi", help="Scan/PDF render DPI"),
 ):
     """
@@ -141,6 +142,10 @@ def grade(
         raise typer.Exit(code=2)
 
     try:
+        scoring = apply_overrides(min_fill=scoring.min_fill, top2_ratio=scoring.top2_ratio,
+            min_score=scoring.min_score,
+            min_abs=scoring.min_abs, min_score=min_score, min_abs=min_abs)
+
         grade_pdf(
             input_path=input_pdf,
             config_path=config,
@@ -148,8 +153,10 @@ def grade(
             key_txt=key_txt,
             out_annotated_dir=out_annotated_dir,
             dpi=dpi,
-            min_fill=min_fill,
-            top2_ratio=top2_ratio,
+            min_fill=scoring.min_fill,
+            top2_ratio=scoring.top2_ratio,
+            min_score=scoring.min_score,
+            min_abs=scoring.min_abs,
             annotate_all_cells=annotate_all_cells, 
             label_density=label_density, 
         )

@@ -18,6 +18,7 @@ Outputs CSV with columns:
 
 from __future__ import annotations
 import argparse
+from bubble_omr.scoring_defaults import DEFAULTS, apply_overrides
 import csv
 import os
 from typing import List, Tuple, Iterable, Optional
@@ -190,8 +191,8 @@ def select_per_row(scores: List[float],
                    cols: int,
                    min_fill: float,
                    top2_ratio: float,
-                   min_score: float = 10.0,
-                   min_abs: float = 0.10) -> List[Optional[int]]:
+                   min_score: float ,
+                   min_abs: float ) -> List[Optional[int]]:
     """
     For each row (length=cols), pick ONE column index or None using the combined rule.
     `scores` is a flat list in row-major order: [r0c0, r0c1, ..., r0c{cols-1}, r1c0, ...]
@@ -212,8 +213,8 @@ def select_per_col(scores: List[float],
                    cols: int,
                    min_fill: float,
                    top2_ratio: float,
-                   min_score: float = 10.0,
-                   min_abs: float = 0.10) -> List[Optional[int]]:
+                   min_score: float ,
+                   min_abs: float ) -> List[Optional[int]]:
     """
     For each column (length=rows), pick ONE row index or None using the combined rule.
     `scores` is a flat list in row-major order.
@@ -234,7 +235,7 @@ def select_per_col(scores: List[float],
 
 def decode_layout(
     gray: np.ndarray, layout: GridLayout,
-    min_fill: float, top2_ratio: float
+    min_fill: float, top2_ratio: float, min_score: float, min_abs: float
 ):
     """
     Decode one layout according to its selection_axis.
@@ -252,9 +253,9 @@ def decode_layout(
     scores = roi_otsu_fill_scores(gray, rois, inner_radius_ratio=0.70, blur_ksize=5)
 
     if layout.selection_axis == "row":
-        picked = select_per_row(scores, layout.questions, layout.choices, min_fill, top2_ratio)
+        picked = select_per_row(scores, layout.questions, layout.choices, min_fill, top2_ratio, min_score, min_abs)
     else:
-        picked = select_per_col(scores, layout.questions, layout.choices, min_fill, top2_ratio)
+        picked = select_per_col(scores, layout.questions, layout.choices, min_fill, top2_ratio, min_score, min_abs)
 
     return picked, rois, scores
 
@@ -305,8 +306,10 @@ def score_against_key(selections: List[Optional[str]], key: List[str]) -> Tuple[
 def process_page_all(
     img_bgr: np.ndarray,
     cfg: Config,
-    min_fill: float = 0.20,
-    top2_ratio: float = 0.80
+    min_fill: float,
+    top2_ratio: float,
+    min_score: float,
+    min_abs: float
 ):
     """
     Decode ID, names, version (if present) and all answer_layouts.
@@ -389,8 +392,10 @@ def main():
     ap.add_argument("--key-txt", required=False, help="Answer key text file (A/B/C/...).")
     ap.add_argument("--out-csv", default="results.csv", help="Output CSV path.")
     ap.add_argument("--dpi", type=int, default=300, help="DPI when rasterizing PDFs.")
-    ap.add_argument("--min-fill", type=float, default=0.20, help="Min fill darkness (0..1) to accept a bubble.")
-    ap.add_argument("--top2-ratio", type=float, default=0.80, help="Second-best <= top2_ratio * best to accept.")
+    ap.add_argument("--min-fill", type=float, default=None, help="Min fill darkness (0..1) to accept a bubble.")
+    ap.add_argument("--top2-ratio", type=float, default=None, help="Second-best <= top2_ratio * best to accept.")
+    ap.add_argument("--min-score", type=float, default=None, help="Absolute separation in percentage points")
+    ap.add_argument("--min-abs", type=float, default=None, help="Absolute minimum fill guard")
     ap.add_argument("inputs", nargs="+", help="PDF(s) or image(s) to grade.")
     args = ap.parse_args()
 
@@ -410,7 +415,12 @@ def main():
     rows_out: List[List[str]] = []
 
     for pi, img_bgr in enumerate(pages):
-        info, answers = process_page_all(img_bgr, cfg, min_fill=args.min_fill, top2_ratio=args.top2_ratio)
+        scoring = apply_overrides(min_fill=args.min_fill, top2_ratio=args.top2_ratio, min_score=args.min_score, min_abs=args.min_abs)
+        info, answers = process_page_all(img_bgr, cfg,
+                                         min_fill=scoring.min_fill,
+                                         top2_ratio=scoring.top2_ratio,
+                                         min_score=scoring.min_score,
+                                         min_abs=scoring.min_abs)
 
         # Score if key provided
         row = [str(pi), info["last_name"], info["first_name"], info["student_id"], info["version"]]

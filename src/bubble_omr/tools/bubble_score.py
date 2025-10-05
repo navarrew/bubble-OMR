@@ -86,6 +86,71 @@ def circle_mask(w: int, h: int) -> np.ndarray:
 # Scoring primitives
 # ------------------------------------------------------------------------------
 
+
+def roi_otsu_fill_scores(
+    gray: np.ndarray,
+    rois: List[Tuple[int, int, int, int]],
+    inner_radius_ratio: float = 0.70,   # ignore printed ring; score inner 70%
+    blur_ksize: int = 5,
+) -> List[float]:
+    """
+    Return a [0..1] fill score per ROI using the classic pipeline:
+      - extract each ROI, build a circular inner mask (to avoid the printed ring),
+      - Gaussian blur (denoise),
+      - Otsu threshold (adaptive),
+      - score = fraction of foreground pixels inside the inner disk.
+
+    We invert (THRESH_BINARY_INV) so darker pencil becomes '1' (foreground).
+    """
+    H, W = gray.shape[:2]
+    scores: List[float] = []
+
+    for (x, y, w, h) in rois:
+        # Defensive bounds
+        x0 = max(0, x); y0 = max(0, y)
+        x1 = min(W, x + w); y1 = min(H, y + h)
+        if x1 <= x0 or y1 <= y0:
+            scores.append(0.0)
+            continue
+
+        crop = gray[y0:y1, x0:x1]
+        if crop.size == 0:
+            scores.append(0.0)
+            continue
+
+        # Build inner-disk mask to avoid scoring the printed circle ring
+        cx = (x1 - x0) // 2
+        cy = (y1 - y0) // 2
+        r  = min(cx, cy)
+        r_inner = max(1, int(round(inner_radius_ratio * r)))
+
+        mask = np.zeros_like(crop, dtype=np.uint8)
+        cv2.circle(mask, (cx, cy), r_inner, 255, thickness=-1, lineType=cv2.LINE_AA)
+
+        # Extract masked pixels as a flat array
+        vals = crop[mask > 0]
+        if vals.size < 16:   # too few pixels to be reliable
+            scores.append(0.0)
+            continue
+
+        # Gaussian blur on the 1D view is awkward; blur the crop then reselect
+        if blur_ksize and blur_ksize > 1:
+            k = int(blur_ksize) | 1  # force odd
+            crop_blur = cv2.GaussianBlur(crop, (k, k), 0)
+            vals = crop_blur[mask > 0]
+
+        # Otsu on masked pixels only (reshape to a column for OpenCV)
+        vals2d = vals.reshape(-1, 1)
+        # We invert so darker pencil becomes 255 (foreground)
+        _, otsu = cv2.threshold(vals2d, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+        filled_fraction = float(np.count_nonzero(otsu == 255)) / float(otsu.size)
+        # Clamp to [0,1] for safety
+        scores.append(max(0.0, min(1.0, filled_fraction)))
+
+    return scores
+
+
 def roi_darkness_scores(gray: np.ndarray, rois: List[Tuple[int,int,int,int]]) -> List[float]:
     """Return 0..1 darkness score (mean inverted intensity inside circle) for each ROI."""
     scores: List[float] = [0.0] * len(rois)
@@ -157,7 +222,7 @@ def decode_layout(
         layout.questions, layout.choices
     )
     rois = centers_to_circle_rois(centers, w, h, layout.radius_pct)
-    scores = roi_darkness_scores(gray, rois)
+    scores = roi_otsu_fill_scores(gray, rois, inner_radius_ratio=0.70, blur_ksize=5)
 
     if layout.selection_axis == "row":
         picked = select_per_row(scores, layout.questions, layout.choices, min_fill, top2_ratio)

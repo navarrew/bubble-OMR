@@ -145,9 +145,6 @@ def _parse_layout(name: str, section: Dict[str, Any]) -> GridLayout:
 
 def load_config(path: str) -> Config:
     """Load and validate a bubble-OMR configuration YAML file."""
-    print(f"[debug] loading config from: {path}")
-#    with open(path, "r", encoding="utf-8") as f:
-#        data = yaml.safe_load(f)
     import io
     with io.open(path, "r", encoding="utf-8", errors="replace") as f:
         data = yaml.safe_load(f)

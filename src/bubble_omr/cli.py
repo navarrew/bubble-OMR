@@ -115,26 +115,25 @@ def visualize(
 def grade(
     input_pdf: str = typer.Argument(..., help="Aligned scans PDF"),
     config: str = typer.Option(..., "--config", "-c", help="Config file (.yaml/.yml or .json) — YAML recommended"),
-    key_txt: Optional[str] = typer.Option(None, "--key-txt", "-k", help="Answer key text file (A/B/C/...). If provided, only first len(key) questions are graded/output."),
+    key_txt: Optional[str] = typer.Option(None, "--key-txt", "-k",
+        help="Answer key file (A/B/C/... one per line). If provided, only first len(key) questions are graded/output."),
     out_csv: str = typer.Option("results.csv", "--out-csv", "-o", help="Output CSV of per-student results"),
     out_annotated_dir: Optional[str] = typer.Option(None, "--out-annotated-dir", help="Directory to write annotated sheets"),
-    # The following visual/threshold flags are kept and only the ones supported by grade_pdf are passed through:
-    annotate_all_cells: bool = typer.Option(False, "--annotate-all-cells", help="(reserved; not used by current grader)"),
-    mark_blanks_incorrect: bool = typer.Option(False, "--mark-blanks-incorrect", help="(reserved; not used by current grader)"),
-    label_density: bool = typer.Option(False, "--label-density", help="(reserved; not used by current grader)"),
-    min_fill: float = typer.Option(0.40, "--min-fill", help="Min fill threshold for answers (0-1)"),
-    name_min_fill: float = typer.Option(0.15, "--name-min-fill", help="(reserved; not used by current grader)"),
-    min_score: float = typer.Option(2.0, "--min-score", help="(reserved; not used by current grader)"),
-    top2_ratio: float = typer.Option(0.75, "--top2-ratio", help="Top1/top2 ratio threshold"),
-    fix_warp: bool = typer.Option(False, "--fix-warp", help="(reserved; not used by current grader)"),
-    warp_debug: bool = typer.Option(False, "--warp-debug", help="(reserved; not used by current grader)"),
+    # These two are active and supported by grade_pdf:
+    annotate_all_cells: bool = typer.Option(False, "--annotate-all-cells",
+        help="Draw every bubble in each row (not just the chosen one)."),
+    label_density: bool = typer.Option(False, "--label-density",
+        help="Overlay % fill text at bubble centers in annotated images."),
+    # Thresholds and misc:
+    min_fill: float = typer.Option(0.40, "--min-fill", help="Min fill threshold for answers (0–1)"),
+    top2_ratio: float = typer.Option(0.75, "--top2-ratio", help="Top1/Top2 ratio threshold for 'multi' detection"),
     dpi: int = typer.Option(300, "--dpi", help="Scan/PDF render DPI"),
 ):
     """
     Grade aligned scans using axis-based config.
     If a key is provided, ONLY the first len(key) questions are graded and written to CSV.
     """
-    # Optional: quick validation that the config path is readable
+    # Quick config sanity so we fail early with a useful error
     try:
         _ = load_config(config)
     except Exception as e:
@@ -142,7 +141,6 @@ def grade(
         raise typer.Exit(code=2)
 
     try:
-        # Call the new grader with the parameters it actually supports
         grade_pdf(
             input_path=input_pdf,
             config_path=config,
@@ -152,6 +150,8 @@ def grade(
             dpi=dpi,
             min_fill=min_fill,
             top2_ratio=top2_ratio,
+            annotate_all_cells=annotate_all_cells,  # <-- now wired through
+            label_density=label_density,            # <-- now wired through
         )
     except Exception as e:
         rprint(f"[red]Grading failed:[/red] {e}")

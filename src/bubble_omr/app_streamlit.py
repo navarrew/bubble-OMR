@@ -39,10 +39,39 @@ def _ensure_dir(p: Path):
     return p
 
 # ---------- UI ----------
-tab1, tab2, tab3, tab4 = st.tabs(["Align", "Visualize", "Grade", "Stats"])
+tab1, tab2, tab3, tab4 = st.tabs(["Config Visualizer", "Align", "Grade", "Stats"])
+
+# ============ Visualize ============
+with tab1:
+    st.header("Visualize how your config file overlays on your bubble sheet")
+    input_path = st.file_uploader("PDF/image", type=["pdf", "png", "jpg", "jpeg"], key="viz_input")
+
+    # Accept YAML or JSON
+    cfg_upload = st.file_uploader("Config (YAML or JSON)", type=["yaml", "yml", "json"], key="viz_cfg")
+
+    out_name = st.text_input("Output image name", "zone_preview.png")
+    dpi = st.number_input("Render DPI for PDFs", value=300, min_value=72, max_value=600)
+    label_blocks = st.checkbox("Label answer blocks", value=True)
+
+    if st.button("Draw overlay"):
+        if not input_path or not cfg_upload:
+            st.error("Provide both input and config.")
+        else:
+            try:
+                in_path = Path(_save_upload_to_tmp(input_path))
+                cfg_path = Path(_save_upload_to_tmp(cfg_upload))
+                out_path = Path.cwd() / out_name
+
+                # overlay_config(input_pdf: str, config_path: str, out_image: str = ..., dpi: int = ..., label_blocks: bool = ...)
+                overlay_config(str(in_path), str(cfg_path), str(out_path), dpi=int(dpi), label_blocks=bool(label_blocks))
+
+                st.success("Overlay generated.")
+                st.download_button(out_name, out_path.read_bytes(), file_name=out_name)
+            except Exception as e:
+                st.error(f"Visualization failed: {e}")
 
 # ============ Align ============
-with tab1:
+with tab2:
     st.header("Align scanned PDF")
     input_pdf = st.file_uploader("Scanned PDF", type=["pdf"], key="align_pdf")
     template = st.file_uploader("Template PDF", type=["pdf"], key="align_template")
@@ -76,38 +105,10 @@ with tab1:
             except Exception as e:
                 st.error(f"Alignment failed: {e}")
 
-# ============ Visualize ============
-with tab2:
-    st.header("Visualize config overlay")
-    input_path = st.file_uploader("PDF/image", type=["pdf", "png", "jpg", "jpeg"], key="viz_input")
-
-    # Accept YAML or JSON
-    cfg_upload = st.file_uploader("Config (YAML or JSON)", type=["yaml", "yml", "json"], key="viz_cfg")
-
-    out_name = st.text_input("Output image name", "zone_preview.png")
-    dpi = st.number_input("Render DPI for PDFs", value=300, min_value=72, max_value=600)
-    label_blocks = st.checkbox("Label answer blocks", value=True)
-
-    if st.button("Draw overlay"):
-        if not input_path or not cfg_upload:
-            st.error("Provide both input and config.")
-        else:
-            try:
-                in_path = Path(_save_upload_to_tmp(input_path))
-                cfg_path = Path(_save_upload_to_tmp(cfg_upload))
-                out_path = Path.cwd() / out_name
-
-                # overlay_config(input_pdf: str, config_path: str, out_image: str = ..., dpi: int = ..., label_blocks: bool = ...)
-                overlay_config(str(in_path), str(cfg_path), str(out_path), dpi=int(dpi), label_blocks=bool(label_blocks))
-
-                st.success("Overlay generated.")
-                st.download_button(out_name, out_path.read_bytes(), file_name=out_name)
-            except Exception as e:
-                st.error(f"Visualization failed: {e}")
 
 # ============ Grade ============
 with tab3:
-    st.header("Grade aligned scans")
+    st.header("Grade aligned scans with a key you provide")
     input_pdf = st.file_uploader("Aligned scans (PDF)", type=["pdf"], key="grade_pdf")
 
     # Accept YAML or JSON

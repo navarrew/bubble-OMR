@@ -27,7 +27,7 @@ from .tools.bubble_score import (
     load_key_txt,
     grid_centers_axis_mode,
     centers_to_circle_rois,
-    roi_otsu_fill_scores,
+    roi_fill_scores
 )
 
 
@@ -47,7 +47,7 @@ def _rowwise_scores(
     cols: int,
 ) -> List[List[float]]:
     """Return a rows×cols matrix of fill scores (0–1)."""
-    flat = roi_otsu_fill_scores(gray, rois, inner_radius_ratio=0.70, blur_ksize=5)
+    flat = roi_fill_scores(gray, rois, inner_radius_ratio=0.70, blur_ksize=5)
     return [flat[r * cols:(r + 1) * cols] for r in range(rows)]
 
 # ----------------------------
@@ -78,7 +78,7 @@ def _annotate_names_ids(
             layout.questions, layout.choices
         )
         rois = centers_to_circle_rois(centers, W, H, layout.radius_pct)
-        scores = roi_otsu_fill_scores(gray, rois, inner_radius_ratio=0.70, blur_ksize=5)
+        scores = roi_fill_scores(gray, rois, inner_radius_ratio=0.70, blur_ksize=5)
         for idx, (x, y, w, h) in enumerate(rois):
             cx, cy = x + w // 2, y + h // 2
             radius = min(w, h) // 2

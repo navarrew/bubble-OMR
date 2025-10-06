@@ -1,7 +1,7 @@
 # bubble-OMR
 
 bubble-OMR is a Python tool to align, visualize, grade, and analyze bubble-sheet exams.  
-It supports both **YAML** and **JSON** configuration files, and includes both a CLI and a Streamlit-based GUI.
+It includes both a CLI and a Streamlit-based GUI.
 
 ---
 

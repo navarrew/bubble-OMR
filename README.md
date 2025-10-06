@@ -155,42 +155,116 @@ Correlation between selecting a particular option and student ability. Correct o
 ## Example Config (YAML)
 
 ```yaml
-answer_layouts:
-  - zone: [0.06, 0.59, 0.25, 0.92]
-    questions: 16
-    questions_per_row: 1
-    choices: 5
-  - zone: [0.29, 0.59, 0.48, 0.92]
-    questions: 16
-    questions_per_row: 1
-    choices: 5
+# 64_question_config_axis.yaml
+# coordinates are given in percentages from top (y values) and left (x values) of page.
+# x_topleft: 0.5 -> means a point 50% or in the middle of the page from left to right
 
+# -----------------------------
+# Name blocks (select one row per column)
+# -----------------------------
 last_name_layout:
-  zone: [0.36, 0.10, 0.76, 0.56]
-  rows: 27
-  cols: 14
-  symbols: " ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  x_topleft: 0.3737
+  y_topleft: 0.1148
+  x_bottomright: 0.7537
+  y_bottomright: 0.5603
+  radius_pct: 0.008
+  questions: 27            # synonymous with rows (letters incl. leading space)
+  choices: 14              # synonymous with columns (positions)
+  bubble_shape: circle
+  selection_axis: col
+  labels: " ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 first_name_layout:
-  zone: [0.79, 0.10, 0.94, 0.56]
-  rows: 27
-  cols: 5
-  symbols: " ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  x_topleft: 0.8106
+  y_topleft: 0.1148
+  x_bottomright: 0.9278
+  y_bottomright: 0.5603
+  radius_pct: 0.008
+  questions: 27
+  choices: 5
+  bubble_shape: circle
+  selection_axis: col
+  labels: " ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
+# -----------------------------
+# Student ID (select one row per column)
+# -----------------------------
 id_layout:
-  zone: [0.03, 0.39, 0.32, 0.56]
-  rows: 10
-  cols: 10
-  symbols: "0123456789"
+  x_topleft: 0.0510
+  y_topleft: 0.4058
+  x_bottomright: 0.3110
+  y_bottomright: 0.5603
+  radius_pct: 0.008
+  questions: 10           # rows 10
+  choices: 10             # 10 digit positions
+  bubble_shape: circle
+  selection_axis: col
+  labels: "0123456789"
 
+# -----------------------------
+# Test version (select one column in a single row)
+# -----------------------------
 version_layout:
-  zone: [0.20, 0.30, 0.31, 0.32]
-  rows: 1
-  cols: 4
-  symbols: "ABCD"
-  orientation: "horizontal"
+  x_topleft: 0.2173
+  y_topleft: 0.3179
+  x_bottomright: 0.2965
+  y_bottomright: 0.3179
+  radius_pct: 0.008
+  questions: 1
+  choices: 4
+  bubble_shape: circle
+  selection_axis: row
+  labels: "ABCD"
 
-bubble_shape: circle
+# -----------------------------
+# Answer blocks (select one column per row)
+# -----------------------------
+answer_layouts:
+  - x_topleft: 0.0801
+    y_topleft: 0.6035
+    x_bottomright: 0.2275
+    y_bottomright: 0.9130
+    radius_pct: 0.007
+    questions: 16
+    choices: 5
+    bubble_shape: circle
+    selection_axis: row
+    labels: "ABCDE"
+    
+  - x_topleft: 0.3157
+    y_topleft: 0.6035
+    x_bottomright: 0.4631
+    y_bottomright: 0.9130
+    radius_pct: 0.007
+    questions: 16
+    choices: 5
+    bubble_shape: circle
+    selection_axis: row
+    labels: "ABCDE"
+
+  - x_topleft: 0.5514
+    y_topleft: 0.6035
+    x_bottomright: 0.6988
+    y_bottomright: 0.9130
+    radius_pct: 0.007
+    questions: 16
+    choices: 5
+    bubble_shape: circle
+    selection_axis: row
+    labels: "ABCDE"
+
+  - x_topleft: 0.7875
+    y_topleft: 0.6035
+    x_bottomright: 0.9341
+    y_bottomright: 0.9130
+    radius_pct: 0.007
+    questions: 16
+    choices: 5
+    bubble_shape: circle
+    selection_axis: row
+    labels: "ABCDE"
+
+total_questions: 64
 ```
 
 ---

@@ -1,17 +1,30 @@
 # bubble-OMR
 
-bubble-OMR is a Python tool to align, visualize, grade, and analyze bubble-sheet exams.  
-It includes both a CLI and a Streamlit-based GUI.
+**bubble-OMR** is a versatile, fast Python tool to **align, visualize, grade, and analyze bubble-sheet exams**.  
+It supports YAML/JSON configuration files, command-line and GUI modes, and outputs annotated images, CSV results, and detailed item-analysis statistics.
 
 ---
 
-## Installation
+## 🧰 Prerequisites
+
+- **Python 3.9 – 3.12**
+- **Ghostscript** (required for PDF compression and merging)
+  - macOS → `brew install ghostscript`
+  - Ubuntu/Debian → `sudo apt-get install ghostscript`
+- Optional but recommended:
+  - A virtual environment (`python -m venv venv` → `source venv/bin/activate`)
+  - Or [`pipx`](https://pypa.github.io/pipx/) for isolated installs
+
+---
+
+## 📦 Installation
+
+Clone and install the package locally:
 
 ```bash
 git clone https://github.com/navarrew/bubble-OMR.git
 cd bubble-OMR
 pip install -e .
-```
 
 Make sure you have required dependencies (OpenCV, Typer, Streamlit, Ghostscript for PDF compression).
 

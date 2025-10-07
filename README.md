@@ -4,6 +4,8 @@
 It supports YAML/JSON configuration files, command-line and GUI modes, and outputs annotated images, CSV results, and detailed item-analysis statistics.
 
 ---
+![OMR pipeline](images/pipeline.jpeg)
+---
 
 ## 🧰 Prerequisites
 

@@ -4,6 +4,8 @@ bubble-OMR is a Python tool to align, visualize, grade, and analyze bubble-sheet
 It includes both a CLI and a Streamlit-based GUI.
 
 ---
+![OMR pipeline](images/pipeline.jpeg)
+---
 
 ## Installation
 

@@ -1,4 +1,4 @@
-# 64_question_config_axis.yaml
+# 80Q-config.yaml
 # coordinates are given in percentages from top (y values) and left (x values) of page.
 # x_topleft: 0.5 -> means a point 50% or in the middle of the page from left to right
 
@@ -6,10 +6,10 @@
 # Name blocks (select one row per column)
 # -----------------------------
 last_name_layout:
-  x_topleft: 0.3737
-  y_topleft: 0.1148
-  x_bottomright: 0.7537
-  y_bottomright: 0.5603
+  x_topleft: 0.3924
+  y_topleft: 0.1051
+  x_bottomright: 0.7527
+  y_bottomright: 0.5249
   radius_pct: 0.008
   questions: 27            # synonymous with rows (letters incl. leading space)
   choices: 14              # synonymous with columns (positions)
@@ -18,10 +18,10 @@ last_name_layout:
   labels: " ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 first_name_layout:
-  x_topleft: 0.8106
-  y_topleft: 0.1148
-  x_bottomright: 0.9278
-  y_bottomright: 0.5603
+  x_topleft: 0.8029
+  y_topleft: 0.1051
+  x_bottomright: 0.9138
+  y_bottomright: 0.5249
   radius_pct: 0.008
   questions: 27
   choices: 5
@@ -33,10 +33,10 @@ first_name_layout:
 # Student ID (select one row per column)
 # -----------------------------
 id_layout:
-  x_topleft: 0.0510
-  y_topleft: 0.4058
-  x_bottomright: 0.3110
-  y_bottomright: 0.5603
+  x_topleft: 0.0940
+  y_topleft: 0.1050
+  x_bottomright: 0.3435
+  y_bottomright: 0.2505
   radius_pct: 0.008
   questions: 10           # rows 10
   choices: 10             # 10 digit positions
@@ -48,10 +48,10 @@ id_layout:
 # Test version (select one column in a single row)
 # -----------------------------
 version_layout:
-  x_topleft: 0.2173
-  y_topleft: 0.3179
-  x_bottomright: 0.2965
-  y_bottomright: 0.3179
+  x_topleft: 0.2453
+  y_topleft: 0.4178
+  x_bottomright: 0.3206
+  y_bottomright: 0.4178
   radius_pct: 0.008
   questions: 1
   choices: 4
@@ -63,48 +63,48 @@ version_layout:
 # Answer blocks (select one column per row)
 # -----------------------------
 answer_layouts:
-  - x_topleft: 0.0804
-    y_topleft: 0.6033
-    x_bottomright: 0.2275
-    y_bottomright: 0.9130
+  - x_topleft: 0.1311
+    y_topleft: 0.5592
+    x_bottomright: 0.2607
+    y_bottomright: 0.9301
     radius_pct: 0.008
-    questions: 16
+    questions: 20
     choices: 5
     bubble_shape: circle
     selection_axis: row
     labels: "ABCDE"
     
-  - x_topleft: 0.3157
-    y_topleft: 0.6033
-    x_bottomright: 0.4631
-    y_bottomright: 0.9130
+  - x_topleft: 0.3425
+    y_topleft: 0.5592
+    x_bottomright: 0.4720
+    y_bottomright: 0.9301
     radius_pct: 0.008
-    questions: 16
+    questions: 20
     choices: 5
     bubble_shape: circle
     selection_axis: row
     labels: "ABCDE"
 
-  - x_topleft: 0.5514
-    y_topleft: 0.6033
-    x_bottomright: 0.6988
-    y_bottomright: 0.9130
+  - x_topleft: 0.5538
+    y_topleft: 0.5592
+    x_bottomright: 0.6834
+    y_bottomright: 0.9301
     radius_pct: 0.008
-    questions: 16
+    questions: 20
     choices: 5
     bubble_shape: circle
     selection_axis: row
     labels: "ABCDE"
 
-  - x_topleft: 0.7875
-    y_topleft: 0.6033
-    x_bottomright: 0.9341
-    y_bottomright: 0.9130
+  - x_topleft: 0.7651
+    y_topleft: 0.5592
+    x_bottomright: 0.8947
+    y_bottomright: 0.9301
     radius_pct: 0.008
-    questions: 16
+    questions: 20
     choices: 5
     bubble_shape: circle
     selection_axis: row
     labels: "ABCDE"
 
-total_questions: 64
+total_questions: 80

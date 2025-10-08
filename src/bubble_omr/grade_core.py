@@ -317,7 +317,7 @@ def grade_pdf(
                     cfg,
                     label_density=label_density,
                     color_zone=(255, 0, 0),      # blue
-                    text_color=(255, 255, 255),  # white
+                    text_color=(255, 0, 0),  # blue
                     thickness=2,
                 )
                 vis = _annotate_answers(

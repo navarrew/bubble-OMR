@@ -112,8 +112,10 @@ def render_pdf_page(pdf_path: str, page_index: int = 0, dpi: int = 300) -> Image
 # ArUco-based alignment
 # -------------------------
 
+
 def detect_aruco_centers(img_bgr: np.ndarray, dict_name: str = "DICT_4X4_50") -> Dict[int, Tuple[float, float]]:
-    """Return dict id -> (cx, cy) center for detected ArUco markers."""
+    """Return dict id -> (cx, cy) center for detected ArUco markers.
+    Accepts a bgr image in numpy.ndarray format (bgr)"""
     gray = cv.cvtColor(img_bgr, cv.COLOR_BGR2GRAY)
     aruco = cv.aruco
     name = dict_name.upper()

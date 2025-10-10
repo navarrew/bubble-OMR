@@ -221,7 +221,7 @@ def grade_pdf(
     q_out = len(key) if key else total_q
     q_out = max(0, min(q_out, total_q))
 
-    # CSV header
+    # Make the CSV header
     header = ["page_index", "LastName", "FirstName", "StudentID", "Version"] \
              + [f"Q{i+1}" for i in range(q_out)]
     if key:
